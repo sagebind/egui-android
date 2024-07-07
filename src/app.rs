@@ -14,4 +14,15 @@ pub trait App {
     /// Called each time the UI needs repainting, which may be many times per
     /// second.
     fn update(&mut self, ctx: &egui::Context);
+
+    /// Called when the rectangle in the window in which content should be
+    /// placed has changed.
+    fn on_content_rect_changed(&mut self, _new_rect: egui::Rect) {
+        // By default, do nothing.
+    }
+
+    /// Called by Android when the system is running low on memory.
+    fn on_low_memory(&mut self) {
+        // By default, do nothing.
+    }
 }

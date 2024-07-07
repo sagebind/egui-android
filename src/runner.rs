@@ -1,12 +1,13 @@
 #![cfg(target_os = "android")]
 
-use crate::App;
+use crate::{window::AndroidSurfaceTarget, App};
 use android_activity::{
     input::{InputEvent, KeyEvent},
     AndroidApp, MainEvent, PollEvent,
 };
-use egui::{Event, FullOutput, RawInput};
+use egui::{Event, FullOutput, Modifiers, Pos2, RawInput, Rect};
 use egui_wgpu::Renderer;
+use pollster::block_on;
 use std::mem::take;
 
 pub struct Runner<T: App> {
@@ -14,7 +15,7 @@ pub struct Runner<T: App> {
     android_app: AndroidApp,
     egui_context: egui::Context,
     raw_input: RawInput,
-    renderer: Renderer,
+    renderer: Option<Renderer>,
     wgpu_instance: wgpu::Instance,
     focused: bool,
     wants_keyboard_input: bool,
@@ -27,14 +28,20 @@ impl<T: App> Runner<T> {
         });
 
         let egui_context = egui::Context::default();
-        let renderer = egui_wgpu::Renderer::new(todo!(), todo!(), todo!(), todo!());
+
+        // Configure repaint requests to trigger a wake up of the Android event
+        // loop.
+        let waker = android_app.create_waker();
+        egui_context.set_request_repaint_callback(move |_info| {
+            waker.wake();
+        });
 
         Self {
             app: T::create(),
             android_app,
             egui_context,
             raw_input: RawInput::default(),
-            renderer,
+            renderer: None,
             wgpu_instance: instance,
             focused: false,
             wants_keyboard_input: false,
@@ -67,6 +74,53 @@ impl<T: App> Runner<T> {
                 log::warn!("failed to deserialize memory: {e}");
             }
         }
+    }
+
+    fn initialize_surface(&mut self) {
+        let Some(window) = self.android_app.native_window() else {
+            return;
+        };
+
+        let surface_target = AndroidSurfaceTarget::new(window);
+        let surface = self.wgpu_instance.create_surface(surface_target).unwrap();
+
+        let adapter = block_on(
+            self.wgpu_instance
+                .request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::HighPerformance,
+                    compatible_surface: Some(&surface),
+                    force_fallback_adapter: false,
+                }),
+        )
+        .unwrap();
+
+        let (device, _queue) = block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                required_features: wgpu::Features::POLYGON_MODE_LINE,
+                required_limits: wgpu::Limits {
+                    // max_buffer_size: u64::MAX,
+                    ..Default::default()
+                },
+                label: None,
+            },
+            None,
+        ))
+        .unwrap();
+
+        let surface_caps = surface.get_capabilities(&adapter);
+        let surface_format = *surface_caps
+            .formats
+            .iter()
+            .find(|f| f.is_srgb())
+            .unwrap_or(&surface_caps.formats[0]);
+
+        let renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1);
+
+        self.renderer = Some(renderer);
+    }
+
+    fn destroy_surface(&mut self) {
+        self.renderer = None;
     }
 
     /// Run one frame of egui.
@@ -111,8 +165,10 @@ impl<T: App> Runner<T> {
                 redraw = true;
             }
             PollEvent::Main(main_event) => match main_event {
-                MainEvent::LowMemory => {}
                 MainEvent::Destroy => {}
+
+                MainEvent::InitWindow { .. } => self.initialize_surface(),
+                MainEvent::TerminateWindow { .. } => self.destroy_surface(),
 
                 MainEvent::GainedFocus => self.focused = true,
                 MainEvent::LostFocus => self.focused = false,
@@ -125,6 +181,7 @@ impl<T: App> Runner<T> {
                         saver.store(&memory);
                     }
                 }
+
                 MainEvent::Resume { loader, .. } => {
                     // If Android remembers the data we saved previously,
                     // re-hydrate it.
@@ -136,7 +193,18 @@ impl<T: App> Runner<T> {
                 MainEvent::RedrawNeeded { .. } => {
                     redraw = true;
                 }
-                _ => todo!(),
+
+                MainEvent::LowMemory => self.app.on_low_memory(),
+                MainEvent::ContentRectChanged { .. } => {
+                    let content_rect = self.android_app.content_rect();
+                    let egui_rect = Rect::from_two_pos(
+                        Pos2::new(content_rect.left as _, content_rect.top as _),
+                        Pos2::new(content_rect.right as _, content_rect.bottom as _),
+                    );
+                    self.app.on_content_rect_changed(egui_rect);
+                }
+
+                main_event => log::trace!("unknown main event: {main_event:?}"),
             },
             _ => {}
         }
@@ -150,15 +218,17 @@ impl<T: App> Runner<T> {
                         }
                         android_activity::InputStatus::Handled
                     }
-                    InputEvent::MotionEvent(motion_event) => android_activity::InputStatus::Handled,
-                    event => android_activity::InputStatus::Handled,
+                    InputEvent::MotionEvent(_motion_event) => {
+                        android_activity::InputStatus::Handled
+                    }
+                    _event => android_activity::InputStatus::Handled,
                 });
 
                 if !read_input {
                     break;
                 }
             },
-            Err(err) => {
+            Err(_err) => {
                 // log::error!("Failed to get input events iterator: {err:?}");
             }
         }
@@ -172,11 +242,22 @@ impl<T: App> Runner<T> {
             let clipped_primitives = self
                 .egui_context
                 .tessellate(full_output.shapes, full_output.pixels_per_point);
+
+            if let Some(renderer) = self.renderer.as_mut() {
+                renderer.render(todo!(), &clipped_primitives, todo!());
+            }
         }
     }
 }
 
 fn to_egui_key_event(key_event: &KeyEvent) -> Option<Event> {
     let physical_key = crate::keycodes::to_physical_key(key_event.key_code());
-    None
+
+    Some(Event::Key {
+        key: physical_key.unwrap(),
+        physical_key,
+        pressed: true,
+        repeat: false,
+        modifiers: Modifiers::default(),
+    })
 }
