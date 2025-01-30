@@ -1,0 +1,19 @@
+version = 1
+
+[install]
+android-tools.pkg-path = "android-tools"
+cargo-ndk.pkg-path = "cargo-ndk"
+android-studio-tools.pkg-path = "android-studio-tools"
+apkeditor.pkg-path = "apkeditor"
+apktool.pkg-path = "apktool"
+bundletool.pkg-path = "bundletool"
+apksigner.pkg-path = "apksigner"
+aapt.pkg-path = "aapt"
+
+[options]
+systems = [
+  "aarch64-darwin",
+  "aarch64-linux",
+  "x86_64-darwin",
+  "x86_64-linux",
+]

@@ -1,0 +1,976 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "version": 1,
+    "install": {
+      "aapt": {
+        "pkg-path": "aapt"
+      },
+      "android-studio-tools": {
+        "pkg-path": "android-studio-tools"
+      },
+      "android-tools": {
+        "pkg-path": "android-tools"
+      },
+      "apkeditor": {
+        "pkg-path": "apkeditor"
+      },
+      "apksigner": {
+        "pkg-path": "apksigner"
+      },
+      "apktool": {
+        "pkg-path": "apktool"
+      },
+      "bundletool": {
+        "pkg-path": "bundletool"
+      },
+      "cargo-ndk": {
+        "pkg-path": "cargo-ndk"
+      }
+    },
+    "hook": {},
+    "profile": {},
+    "options": {
+      "systems": [
+        "aarch64-darwin",
+        "aarch64-linux",
+        "x86_64-darwin",
+        "x86_64-linux"
+      ],
+      "allow": {
+        "licenses": []
+      },
+      "semver": {}
+    }
+  },
+  "packages": [
+    {
+      "attr_path": "aapt",
+      "broken": false,
+      "derivation": "/nix/store/cq1kw9cydia54rkh53555mm3cgb0nxnk-aapt-8.4.1-11315950.drv",
+      "description": "Build tool that compiles and packages Android app's resources",
+      "install_id": "aapt",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "aapt-8.4.1-11315950",
+      "pname": "aapt",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.4.1-11315950",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/hfkdn6dwdmwrg8z456rbi7w69rka04f8-aapt-8.4.1-11315950"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "aapt",
+      "broken": false,
+      "derivation": "/nix/store/m8nwrjl56z2dlg8s92hxf0cn3fb8rnv1-aapt-8.4.1-11315950.drv",
+      "description": "Build tool that compiles and packages Android app's resources",
+      "install_id": "aapt",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "aapt-8.4.1-11315950",
+      "pname": "aapt",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.4.1-11315950",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/05rj3r6dqafb7pdmh348n7ix5fx4phw5-aapt-8.4.1-11315950"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "aapt",
+      "broken": false,
+      "derivation": "/nix/store/74zaz4s0yicl2l438i5iz3h3q5zksh1l-aapt-8.4.1-11315950.drv",
+      "description": "Build tool that compiles and packages Android app's resources",
+      "install_id": "aapt",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "aapt-8.4.1-11315950",
+      "pname": "aapt",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.4.1-11315950",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/mhl76arxqsl1xhbdi0xd7y0r713hpzqz-aapt-8.4.1-11315950"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "aapt",
+      "broken": false,
+      "derivation": "/nix/store/knf4ga9nxr052n8a6nhmvq6b1b6s6sq1-aapt-8.4.1-11315950.drv",
+      "description": "Build tool that compiles and packages Android app's resources",
+      "install_id": "aapt",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "aapt-8.4.1-11315950",
+      "pname": "aapt",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.4.1-11315950",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/yzp8vicb0whbw8cypnd7rql9xgjxydyb-aapt-8.4.1-11315950"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "android-studio-tools",
+      "broken": false,
+      "derivation": "/nix/store/1h17zvcz1qx40nr2jj8mj1ywlbznxf1c-android-studio-tools-11076708.drv",
+      "description": "Android Studio CLI Tools",
+      "install_id": "android-studio-tools",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "android-studio-tools-11076708",
+      "pname": "android-studio-tools",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "11076708",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/cnnvx5bzk13kqy8pqkd4qq5q9lb1k96b-android-studio-tools-11076708"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "android-studio-tools",
+      "broken": false,
+      "derivation": "/nix/store/jwmwbw2mbg5b5di8sm6ssm451f6264lh-android-studio-tools-11076708.drv",
+      "description": "Android Studio CLI Tools",
+      "install_id": "android-studio-tools",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "android-studio-tools-11076708",
+      "pname": "android-studio-tools",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "11076708",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/3mk794jwb391lhnhpck24d8lca2a8r5r-android-studio-tools-11076708"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "android-studio-tools",
+      "broken": false,
+      "derivation": "/nix/store/s0rqm0l39cy49figsvnpxsyzp5synjy5-android-studio-tools-11076708.drv",
+      "description": "Android Studio CLI Tools",
+      "install_id": "android-studio-tools",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "android-studio-tools-11076708",
+      "pname": "android-studio-tools",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "11076708",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/phrmilym1hjdc9bkmx6aslsq4q064hc9-android-studio-tools-11076708"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "android-studio-tools",
+      "broken": false,
+      "derivation": "/nix/store/0v3jdkq8w1m1a9iv1w0304id7yh7dyh0-android-studio-tools-11076708.drv",
+      "description": "Android Studio CLI Tools",
+      "install_id": "android-studio-tools",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "android-studio-tools-11076708",
+      "pname": "android-studio-tools",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "11076708",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/gzgg5g8axdjqsy9nvl2r92nj1kd67qq9-android-studio-tools-11076708"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "android-tools",
+      "broken": false,
+      "derivation": "/nix/store/7j59sl7bljpnpkbb8fmj5rf81qkwa0w6-android-tools-35.0.1.drv",
+      "description": "Android SDK platform tools",
+      "install_id": "android-tools",
+      "license": "[ Apache-2.0, Unicode-DFS-2015 ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "android-tools-35.0.1",
+      "pname": "android-tools",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "35.0.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/b7ikpcg9sxf5wbs7gi95k9wvy5d20sgf-android-tools-35.0.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "android-tools",
+      "broken": false,
+      "derivation": "/nix/store/x02za3xmc56rsflbmwihjpflwkygnava-android-tools-35.0.1.drv",
+      "description": "Android SDK platform tools",
+      "install_id": "android-tools",
+      "license": "[ Apache-2.0, Unicode-DFS-2015 ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "android-tools-35.0.1",
+      "pname": "android-tools",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "35.0.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/28bpx1czq32m33zdvxrpql4m5khv2f7k-android-tools-35.0.1"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "android-tools",
+      "broken": false,
+      "derivation": "/nix/store/2kl3fmkpwy79aj8wvvar9q2ssxfrd4id-android-tools-35.0.1.drv",
+      "description": "Android SDK platform tools",
+      "install_id": "android-tools",
+      "license": "[ Apache-2.0, Unicode-DFS-2015 ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "android-tools-35.0.1",
+      "pname": "android-tools",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "35.0.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/zbzrjx327w6sfc3n2lk1in5k9v2a37nc-android-tools-35.0.1"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "android-tools",
+      "broken": false,
+      "derivation": "/nix/store/f52598xg4z3p6qd2p5cv819wvpbxir0a-android-tools-35.0.1.drv",
+      "description": "Android SDK platform tools",
+      "install_id": "android-tools",
+      "license": "[ Apache-2.0, Unicode-DFS-2015 ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "android-tools-35.0.1",
+      "pname": "android-tools",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "35.0.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/4ghsx5ra6zqa3csz3cmwr8cxs5kj27cp-android-tools-35.0.1"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apkeditor",
+      "broken": false,
+      "derivation": "/nix/store/650s0m9nls8cfjabdpwi2w1xnk6m47il-apkeditor-1.4.1.drv",
+      "description": "Powerful android apk resources editor",
+      "install_id": "apkeditor",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apkeditor-1.4.1",
+      "pname": "apkeditor",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/bwcpw3814jp953qn9rsyv1vvqgqx1qv9-apkeditor-1.4.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apkeditor",
+      "broken": false,
+      "derivation": "/nix/store/f7mazldq3al9f1jm011chv8mqka6k5kq-apkeditor-1.4.1.drv",
+      "description": "Powerful android apk resources editor",
+      "install_id": "apkeditor",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apkeditor-1.4.1",
+      "pname": "apkeditor",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/mqmrc9yjsqfvcy4sjr3073mvnn006mbx-apkeditor-1.4.1"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apkeditor",
+      "broken": false,
+      "derivation": "/nix/store/bc71qq4cwx7ks7zklv1rn0b2zrx56mp8-apkeditor-1.4.1.drv",
+      "description": "Powerful android apk resources editor",
+      "install_id": "apkeditor",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apkeditor-1.4.1",
+      "pname": "apkeditor",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/k67snh6cv778qqhka6szv3cribq6w79j-apkeditor-1.4.1"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apkeditor",
+      "broken": false,
+      "derivation": "/nix/store/bksdn68a6dqki0p8dqrc2a3xx0s8mkn6-apkeditor-1.4.1.drv",
+      "description": "Powerful android apk resources editor",
+      "install_id": "apkeditor",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apkeditor-1.4.1",
+      "pname": "apkeditor",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/p5y3hgpvk6zsmq4yr56aqc68i3xnzjvh-apkeditor-1.4.1"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apksigner",
+      "broken": false,
+      "derivation": "/nix/store/xihpihl9marc21nif6164i4hw5jr1nrb-apksigner-34.0.5-unstable-2024-03-06.drv",
+      "description": "Command line tool to sign and verify Android APKs",
+      "install_id": "apksigner",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apksigner-34.0.5-unstable-2024-03-06",
+      "pname": "apksigner",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "34.0.5-unstable-2024-03-06",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/7ch5n2jvpzm4s77brgj534slzlyf1aqq-apksigner-34.0.5-unstable-2024-03-06"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apksigner",
+      "broken": false,
+      "derivation": "/nix/store/cknhaynarqk1pdv3w8mqsx03rj73rka5-apksigner-34.0.5-unstable-2024-03-06.drv",
+      "description": "Command line tool to sign and verify Android APKs",
+      "install_id": "apksigner",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apksigner-34.0.5-unstable-2024-03-06",
+      "pname": "apksigner",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "34.0.5-unstable-2024-03-06",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/2clg6m32nqf4m5xw1aljsy0cs27jc4cf-apksigner-34.0.5-unstable-2024-03-06"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apksigner",
+      "broken": false,
+      "derivation": "/nix/store/hjdqzckhiypxpxlrman2fx8ggq6rbxqs-apksigner-34.0.5-unstable-2024-03-06.drv",
+      "description": "Command line tool to sign and verify Android APKs",
+      "install_id": "apksigner",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apksigner-34.0.5-unstable-2024-03-06",
+      "pname": "apksigner",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "34.0.5-unstable-2024-03-06",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/frxiqsfmrrkllwn4xi76ll886jz20is2-apksigner-34.0.5-unstable-2024-03-06"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apksigner",
+      "broken": false,
+      "derivation": "/nix/store/bifqizdia2cifq94pyk4q2kp2d3knrb1-apksigner-34.0.5-unstable-2024-03-06.drv",
+      "description": "Command line tool to sign and verify Android APKs",
+      "install_id": "apksigner",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apksigner-34.0.5-unstable-2024-03-06",
+      "pname": "apksigner",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "34.0.5-unstable-2024-03-06",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/zyiaqvsax76cv7q2rwksi4mdl44rkif2-apksigner-34.0.5-unstable-2024-03-06"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apktool",
+      "broken": false,
+      "derivation": "/nix/store/5l8x8cbxx1iq6gwn79bsy5p1xpq82j73-apktool-2.11.0.drv",
+      "description": "Tool for reverse engineering Android apk files",
+      "install_id": "apktool",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apktool-2.11.0",
+      "pname": "apktool",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/392wi39fvjrmyqjm640yn366nifxvccy-apktool-2.11.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apktool",
+      "broken": false,
+      "derivation": "/nix/store/2vlc74bjja6vfrw2fjgsn23z46y5fgkk-apktool-2.11.0.drv",
+      "description": "Tool for reverse engineering Android apk files",
+      "install_id": "apktool",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apktool-2.11.0",
+      "pname": "apktool",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/am71a0kxagmqaq9l5rkn3n009mdzjcj1-apktool-2.11.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apktool",
+      "broken": false,
+      "derivation": "/nix/store/bhm0ysnki70pw0wrijil5dg4lx7ns7iq-apktool-2.11.0.drv",
+      "description": "Tool for reverse engineering Android apk files",
+      "install_id": "apktool",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apktool-2.11.0",
+      "pname": "apktool",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/7vd5pp6cs28h0vhmrycmsh2i9v94jw7i-apktool-2.11.0"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "apktool",
+      "broken": false,
+      "derivation": "/nix/store/fynqnz72wl0k06p4gff5y76nlw4sl1k2-apktool-2.11.0.drv",
+      "description": "Tool for reverse engineering Android apk files",
+      "install_id": "apktool",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "apktool-2.11.0",
+      "pname": "apktool",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/ssp7bv7khyc3ihbcxjx6793yrkpcgy09-apktool-2.11.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "bundletool",
+      "broken": false,
+      "derivation": "/nix/store/a15yambfg2am6z9ylnpl7da63qf3pjl0-bundletool-1.18.0.drv",
+      "description": "Command-line tool to manipulate Android App Bundles",
+      "install_id": "bundletool",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "bundletool-1.18.0",
+      "pname": "bundletool",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.18.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/6zbm00h4n2dp72978lf77yck8c25p7ry-bundletool-1.18.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "bundletool",
+      "broken": false,
+      "derivation": "/nix/store/nnwrb3057hz7p4bdq0xxggb372p5lnkr-bundletool-1.18.0.drv",
+      "description": "Command-line tool to manipulate Android App Bundles",
+      "install_id": "bundletool",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "bundletool-1.18.0",
+      "pname": "bundletool",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.18.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/zwg9392pwa6137rnh9ggn5krqy6f3kal-bundletool-1.18.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "bundletool",
+      "broken": false,
+      "derivation": "/nix/store/p2iwgzl71xfv3clyh5sdy1ycbb8kcinf-bundletool-1.18.0.drv",
+      "description": "Command-line tool to manipulate Android App Bundles",
+      "install_id": "bundletool",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "bundletool-1.18.0",
+      "pname": "bundletool",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.18.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/l7yfr2vzcjc1ybl2bpg1x0h9b33v4jmd-bundletool-1.18.0"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "bundletool",
+      "broken": false,
+      "derivation": "/nix/store/ybx4nb8ac6iknrj98b49w81flq9xgr6x-bundletool-1.18.0.drv",
+      "description": "Command-line tool to manipulate Android App Bundles",
+      "install_id": "bundletool",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "bundletool-1.18.0",
+      "pname": "bundletool",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.18.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/96bq7fwlqndkq96r9n5ssbasbj923bfb-bundletool-1.18.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "cargo-ndk",
+      "broken": false,
+      "derivation": "/nix/store/yq5wsl3v46va482p69p98wxf2sf7jsly-cargo-ndk-3.5.7.drv",
+      "description": "Cargo extension for building Android NDK projects",
+      "install_id": "cargo-ndk",
+      "license": "[ Apache-2.0, MIT ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "cargo-ndk-3.5.7",
+      "pname": "cargo-ndk",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.7",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/cwxn7kb9212hmg5bd44089ifsw210i4r-cargo-ndk-3.5.7"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "cargo-ndk",
+      "broken": false,
+      "derivation": "/nix/store/g78xp1xc0k9db7j8phc5sdcfyiwd4s04-cargo-ndk-3.5.7.drv",
+      "description": "Cargo extension for building Android NDK projects",
+      "install_id": "cargo-ndk",
+      "license": "[ Apache-2.0, MIT ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "cargo-ndk-3.5.7",
+      "pname": "cargo-ndk",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.7",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/8nin2c0dxwbn3ahp9y61jg87m6vznlq5-cargo-ndk-3.5.7"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "cargo-ndk",
+      "broken": false,
+      "derivation": "/nix/store/fmyg9krlf12nb7r0cayaz2bymrih76gw-cargo-ndk-3.5.7.drv",
+      "description": "Cargo extension for building Android NDK projects",
+      "install_id": "cargo-ndk",
+      "license": "[ Apache-2.0, MIT ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "cargo-ndk-3.5.7",
+      "pname": "cargo-ndk",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.7",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/5p8hn52mnbj4y908klqnxk3yb21q82ya-cargo-ndk-3.5.7"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "cargo-ndk",
+      "broken": false,
+      "derivation": "/nix/store/k378whm47xarbg4scc6r5a233h6rzcmd-cargo-ndk-3.5.7.drv",
+      "description": "Cargo extension for building Android NDK projects",
+      "install_id": "cargo-ndk",
+      "license": "[ Apache-2.0, MIT ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=9d3ae807ebd2981d593cddd0080856873139aa40",
+      "name": "cargo-ndk-3.5.7",
+      "pname": "cargo-ndk",
+      "rev": "9d3ae807ebd2981d593cddd0080856873139aa40",
+      "rev_count": 745286,
+      "rev_date": "2025-01-29T09:16:47Z",
+      "scrape_date": "2025-01-30T03:28:02Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.7",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/fcv3n3nrjxwsln3yci4l1hpg38yhsavx-cargo-ndk-3.5.7"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    }
+  ]
+}
