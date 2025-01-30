@@ -1,11 +1,8 @@
 #![cfg(target_os = "android")]
 
-use crate::{window::AndroidSurfaceTarget, App};
-use android_activity::{
-    input::{InputEvent, KeyEvent},
-    AndroidApp, MainEvent, PollEvent,
-};
-use egui::{Event, FullOutput, Modifiers, Pos2, RawInput, Rect};
+use crate::{input::InputHandler, window::AndroidSurfaceTarget, App};
+use android_activity::{AndroidApp, MainEvent, PollEvent};
+use egui::{FullOutput, Pos2, RawInput, Rect};
 use egui_wgpu::Renderer;
 use pollster::block_on;
 use std::mem::take;
@@ -19,6 +16,7 @@ pub struct Runner<T: App> {
     wgpu_instance: wgpu::Instance,
     focused: bool,
     wants_keyboard_input: bool,
+    input_handler: InputHandler,
 }
 
 impl<T: App> Runner<T> {
@@ -45,6 +43,7 @@ impl<T: App> Runner<T> {
             wgpu_instance: instance,
             focused: false,
             wants_keyboard_input: false,
+            input_handler: InputHandler::new(),
         }
     }
 
@@ -211,25 +210,18 @@ impl<T: App> Runner<T> {
 
         match self.android_app.input_events_iter() {
             Ok(mut iter) => loop {
-                let read_input = iter.next(|event| match event {
-                    InputEvent::KeyEvent(key_event) => {
-                        if let Some(event) = to_egui_key_event(key_event) {
-                            self.raw_input.events.push(event);
-                        }
-                        android_activity::InputStatus::Handled
-                    }
-                    InputEvent::MotionEvent(_motion_event) => {
-                        android_activity::InputStatus::Handled
-                    }
-                    _event => android_activity::InputStatus::Handled,
+                let read_input = iter.next(|event| {
+                    self.input_handler.process(event, |event| {
+                        self.raw_input.events.push(event);
+                    })
                 });
 
                 if !read_input {
                     break;
                 }
             },
-            Err(_err) => {
-                // log::error!("Failed to get input events iterator: {err:?}");
+            Err(err) => {
+                log::error!("failed to get input events iterator: {err:?}");
             }
         }
 
@@ -248,16 +240,4 @@ impl<T: App> Runner<T> {
             }
         }
     }
-}
-
-fn to_egui_key_event(key_event: &KeyEvent) -> Option<Event> {
-    let physical_key = crate::keycodes::to_physical_key(key_event.key_code());
-
-    Some(Event::Key {
-        key: physical_key.unwrap(),
-        physical_key,
-        pressed: true,
-        repeat: false,
-        modifiers: Modifiers::default(),
-    })
 }
