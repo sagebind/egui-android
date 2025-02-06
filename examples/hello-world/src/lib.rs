@@ -22,8 +22,6 @@ impl App for MyApp {
     }
 
     fn update(&mut self, ctx: &egui::Context) {
-        log::debug!("app update called");
-
         let time = ctx.input(|input| input.time);
 
         egui::CentralPanel::default().show(ctx, |ui| {

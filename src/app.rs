@@ -34,6 +34,6 @@ pub trait App {
     ///
     /// If `None` is returned, `update` will only be called if required.
     fn min_update_frequency(&self) -> Option<Duration> {
-        Some(Duration::from_secs(60))
+        None
     }
 }

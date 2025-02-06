@@ -2,6 +2,7 @@
 
 use crate::{
     graphics::glutin::{GraphicsContext, GraphicsSurface},
+    ime::show_hide_keyboard,
     input::InputHandler,
     state::AppState,
     App,
@@ -10,7 +11,11 @@ use android_activity::{AndroidApp, MainEvent, PollEvent};
 use egui::{pos2, vec2, FullOutput, Margin, Pos2, RawInput, Rect, Theme};
 use egui_glow::Painter;
 use ndk::{configuration::UiModeNight, native_window::NativeWindow};
-use std::mem::take;
+use std::{
+    mem::take,
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 
 pub(crate) struct Runner<T: App> {
     app_state: AppState<T>,
@@ -19,9 +24,10 @@ pub(crate) struct Runner<T: App> {
     graphics_context: GraphicsContext,
     window: Option<WindowSurfaceContext>,
     focused: bool,
-    wants_keyboard_input: bool,
     input_handler: InputHandler,
     screen_rect: Option<Rect>,
+    repaint_info: Arc<Mutex<RepaintInfo>>,
+    keyboard_visible: bool,
 }
 
 /// When a window exists, this holds the rendering context for that window.
@@ -36,18 +42,36 @@ pub(crate) enum ControlFlow {
     Quit,
 }
 
+struct RepaintInfo {
+    needs_repaint: bool,
+    deadline: Instant,
+}
+
 impl<T: App> Runner<T> {
     pub fn new(android_app: AndroidApp) -> Self {
         let app_state = AppState::new(T::create());
+
+        let repaint_info = Arc::new(Mutex::new(RepaintInfo {
+            needs_repaint: false,
+            deadline: Instant::now(),
+        }));
 
         let graphics_context = GraphicsContext::new();
 
         // Configure repaint requests to trigger a wake up of the Android event
         // loop.
-        let waker = android_app.create_waker();
-        app_state
-            .context()
-            .set_request_repaint_callback(move |_info| waker.wake());
+        app_state.context().set_request_repaint_callback({
+            let waker = android_app.create_waker();
+            let repaint_info = repaint_info.clone();
+            move |info| {
+                let mut repaint_info = repaint_info.lock().unwrap();
+
+                repaint_info.needs_repaint = true;
+                repaint_info.deadline = Instant::now() + info.delay;
+
+                waker.wake();
+            }
+        });
 
         Self {
             app_state,
@@ -56,23 +80,37 @@ impl<T: App> Runner<T> {
             graphics_context,
             window: None,
             focused: true,
-            wants_keyboard_input: false,
             input_handler: InputHandler::new(),
             screen_rect: None,
+            repaint_info,
+            keyboard_visible: false,
         }
     }
 
     pub(crate) fn run_once(&mut self) -> ControlFlow {
         let mut control_flow = ControlFlow::Continue;
+        let mut timeout = self.app_state.inner().min_update_frequency();
 
-        self.android_app.clone().poll_events(
-            self.app_state.inner().min_update_frequency(),
-            move |event| {
-                self.process_event(event, &mut control_flow);
-            },
-        );
+        let repaint_info = self.repaint_info.lock().unwrap();
+        if repaint_info.needs_repaint {
+            let duration = repaint_info
+                .deadline
+                .saturating_duration_since(Instant::now());
+
+            timeout = timeout.map(|d| d.min(duration)).or(Some(duration));
+        }
+
+        drop(repaint_info);
+
+        self.android_app.clone().poll_events(timeout, move |event| {
+            self.process_event(event, &mut control_flow);
+        });
 
         control_flow
+    }
+
+    fn request_redraw(&self) {
+        self.app_state.context().request_repaint();
     }
 
     fn initialize_surface(&mut self) {
@@ -97,20 +135,13 @@ impl<T: App> Runner<T> {
     }
 
     fn process_event(&mut self, event: PollEvent, control_flow: &mut ControlFlow) {
-        let mut redraw = false;
-
         match event {
-            PollEvent::Wake => {
-                // info!("Early wake up");
-                redraw = true;
-            }
-
+            PollEvent::Wake => {}
             PollEvent::Timeout => {
                 // info!("Timed out");
                 // Real app would probably rely on vblank sync via graphics API...
-                redraw = true;
+                self.request_redraw();
             }
-
             PollEvent::Main(main_event) => match main_event {
                 MainEvent::Destroy => {
                     self.destroy_surface();
@@ -155,7 +186,7 @@ impl<T: App> Runner<T> {
                     }
                 }
 
-                MainEvent::RedrawNeeded { .. } => redraw = true,
+                MainEvent::RedrawNeeded { .. } => self.request_redraw(),
 
                 MainEvent::LowMemory => self.app_state.inner_mut().on_low_memory(),
 
@@ -175,7 +206,7 @@ impl<T: App> Runner<T> {
                     self.process_pending_input();
                     // Any sort of input should trigger a redraw.
                     // TODO: It would be smarter to ask egui if a redraw is needed as a result of input.
-                    redraw = true;
+                    self.request_redraw();
                 }
 
                 main_event => log::trace!("unknown main event: {main_event:?}"),
@@ -183,9 +214,15 @@ impl<T: App> Runner<T> {
             _ => {}
         }
 
-        self.process_pending_input();
+        // Event handled, now check if we need to repaint.
 
-        if redraw {
+        self.app_state.update_clock();
+
+        let mut repaint_info = self.repaint_info.lock().unwrap();
+
+        if repaint_info.needs_repaint && self.app_state.now() >= repaint_info.deadline {
+            repaint_info.needs_repaint = false;
+            drop(repaint_info);
             self.update();
         }
     }
@@ -198,7 +235,6 @@ impl<T: App> Runner<T> {
                 let read_input = iter.next(|event| {
                     self.input_handler
                         .process(event, pixels_per_point, |event| {
-                            log::debug!("sending event to egui: {:?}", event);
                             self.raw_input.events.push(event);
                         })
                 });
@@ -220,17 +256,15 @@ impl<T: App> Runner<T> {
             return;
         }
 
-        let pixels_per_point = self.calculate_pixels_per_point();
-
         if let Some(native_window) = self.android_app.native_window() {
             self.update_screen_rect(&native_window);
 
-            let full_output = self.update_egui();
+            let mut full_output = self.update_egui();
 
             let clipped_primitives = self
                 .app_state
                 .context()
-                .tessellate(full_output.shapes, full_output.pixels_per_point);
+                .tessellate(take(&mut full_output.shapes), full_output.pixels_per_point);
 
             let window = self.window.as_mut().unwrap();
 
@@ -244,12 +278,14 @@ impl<T: App> Runner<T> {
 
             window.painter.paint_and_update_textures(
                 screen_size,
-                pixels_per_point.unwrap_or(1.0),
+                full_output.pixels_per_point,
                 &clipped_primitives,
                 &full_output.textures_delta,
             );
 
             window.surface.swap_buffers();
+
+            self.handle_ime(&full_output);
         }
     }
 
@@ -270,26 +306,8 @@ impl<T: App> Runner<T> {
         let viewport_info = raw_input.viewports.get_mut(&raw_input.viewport_id).unwrap();
         viewport_info.focused = Some(self.focused);
         viewport_info.native_pixels_per_point = self.calculate_pixels_per_point();
-        log::debug!("pixels per point: {:?}", self.calculate_pixels_per_point());
 
         let full_output = self.app_state.update(raw_input);
-
-        // Check if egui wants to show or hide the keyboard, based on the last UI
-        // update.
-        match (
-            self.wants_keyboard_input,
-            self.app_state.context().wants_keyboard_input(),
-        ) {
-            (false, true) => {
-                self.android_app.show_soft_input(true);
-                self.wants_keyboard_input = true;
-            }
-            (true, false) => {
-                self.android_app.hide_soft_input(true);
-                self.wants_keyboard_input = false;
-            }
-            _ => {}
-        }
 
         full_output
     }
@@ -330,8 +348,8 @@ impl<T: App> Runner<T> {
 
         Margin {
             left: (content_rect.left as f32 / pixels_per_point) as i8,
-            right: 0, // (content_rect.right as f32 / pixels_per_point) as i8,
-            top: 127,// + (content_rect.top as f32 / pixels_per_point) as i8,
+            right: 0,  // (content_rect.right as f32 / pixels_per_point) as i8,
+            top: 127,  // + (content_rect.top as f32 / pixels_per_point) as i8,
             bottom: 0, //(content_rect.bottom as f32 / pixels_per_point) as i8,
         }
     }
@@ -340,5 +358,27 @@ impl<T: App> Runner<T> {
         self.app_state
             .context()
             .style_mut(|style| style.spacing.window_margin = self.window_margin());
+    }
+
+    fn handle_ime(&mut self, full_output: &FullOutput) {
+        // Check if egui wants to show or hide the keyboard, based on the
+        // last UI update.
+
+        match (
+            full_output.platform_output.mutable_text_under_cursor,
+            self.keyboard_visible,
+        ) {
+            (true, false) => {
+                show_hide_keyboard(&self.android_app, true);
+                self.keyboard_visible = true;
+                self.request_redraw();
+            }
+            (false, true) => {
+                show_hide_keyboard(&self.android_app, false);
+                self.keyboard_visible = false;
+                self.request_redraw();
+            }
+            _ => {}
+        }
     }
 }

@@ -1,5 +1,6 @@
 mod app;
 mod graphics;
+mod ime;
 mod input;
 mod logging;
 mod runner;

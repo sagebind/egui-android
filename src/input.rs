@@ -32,8 +32,6 @@ impl InputHandler {
         pixels_per_point: f32,
         mut receiver: impl FnMut(Event),
     ) -> InputStatus {
-        log::debug!("Processing input event: {:?}", android_event);
-
         match android_event {
             InputEvent::KeyEvent(key_event) => {
                 if let Some(event) = to_egui_key_event(key_event) {
