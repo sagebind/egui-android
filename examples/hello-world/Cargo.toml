@@ -7,5 +7,19 @@ publish = false
 [lib]
 crate-type = ["cdylib"]
 
+[dependencies]
+log = "0.4"
+
 [dependencies.egui-android]
 path = "../../"
+
+[package.metadata.android]
+package = "com.foo.bar"
+build_targets = ["armv7-linux-androideabi", "i686-linux-android", "x86_64-linux-android"]
+
+[package.metadata.android.sdk]
+min_sdk_version = 26
+target_sdk_version = 35
+
+[package.metadata.android.application.activity]
+name = "android.app.NativeActivity"

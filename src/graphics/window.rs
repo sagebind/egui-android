@@ -4,6 +4,10 @@ use raw_window_handle::{
     RawWindowHandle, WindowHandle,
 };
 
+pub(crate) fn as_raw_window_handle(native_window: &NativeWindow) -> RawWindowHandle {
+    RawWindowHandle::from(AndroidNdkWindowHandle::new(native_window.ptr().cast()))
+}
+
 pub(crate) struct AndroidSurfaceTarget {
     native_window: NativeWindow,
 }
@@ -16,8 +20,7 @@ impl AndroidSurfaceTarget {
 
 impl HasWindowHandle for AndroidSurfaceTarget {
     fn window_handle(&self) -> Result<WindowHandle, HandleError> {
-        let raw_window_handle =
-            RawWindowHandle::from(AndroidNdkWindowHandle::new(self.native_window.ptr().cast()));
+        let raw_window_handle = as_raw_window_handle(&self.native_window);
 
         unsafe { Ok(WindowHandle::borrow_raw(raw_window_handle)) }
     }

@@ -20,6 +20,8 @@ impl App for MyApp {
     }
 
     fn update(&mut self, ctx: &egui::Context) {
+        log::debug!("app update called");
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("My egui Application");
 
@@ -32,6 +34,7 @@ impl App for MyApp {
             ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
 
             if ui.button("Increment").clicked() {
+                log::info!("incrementing age");
                 self.age += 1;
             }
 

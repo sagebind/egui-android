@@ -1,10 +1,14 @@
 #![cfg(target_os = "android")]
 
-use crate::{input::InputHandler, window::AndroidSurfaceTarget, App};
+use crate::{
+    graphics::glutin::{GraphicsContext, GraphicsSurface},
+    input::InputHandler,
+    App,
+};
 use android_activity::{AndroidApp, MainEvent, PollEvent};
 use egui::{FullOutput, Pos2, RawInput, Rect};
-use egui_wgpu::Renderer;
-use pollster::block_on;
+use egui_glow::Painter;
+use ndk::native_window::NativeWindow;
 use std::mem::take;
 
 pub struct Runner<T: App> {
@@ -12,18 +16,23 @@ pub struct Runner<T: App> {
     android_app: AndroidApp,
     egui_context: egui::Context,
     raw_input: RawInput,
-    renderer: Option<Renderer>,
-    wgpu_instance: wgpu::Instance,
+    graphics_context: GraphicsContext,
+    window: Option<WindowSurfaceContext>,
+    native_window: Option<NativeWindow>,
     focused: bool,
     wants_keyboard_input: bool,
     input_handler: InputHandler,
 }
 
+/// When a window exists, this holds the rendering context for that window.
+struct WindowSurfaceContext {
+    surface: GraphicsSurface,
+    painter: Painter,
+}
+
 impl<T: App> Runner<T> {
     pub fn new(android_app: AndroidApp) -> Self {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            ..Default::default()
-        });
+        let graphics_context = GraphicsContext::new();
 
         let egui_context = egui::Context::default();
 
@@ -39,8 +48,9 @@ impl<T: App> Runner<T> {
             android_app,
             egui_context,
             raw_input: RawInput::default(),
-            renderer: None,
-            wgpu_instance: instance,
+            graphics_context,
+            native_window: None,
+            window: None,
             focused: false,
             wants_keyboard_input: false,
             input_handler: InputHandler::new(),
@@ -80,46 +90,20 @@ impl<T: App> Runner<T> {
             return;
         };
 
-        let surface_target = AndroidSurfaceTarget::new(window);
-        let surface = self.wgpu_instance.create_surface(surface_target).unwrap();
+        let mut surface = self.graphics_context.create_surface(&window);
+        surface.make_current();
 
-        let adapter = block_on(
-            self.wgpu_instance
-                .request_adapter(&wgpu::RequestAdapterOptions {
-                    power_preference: wgpu::PowerPreference::HighPerformance,
-                    compatible_surface: Some(&surface),
-                    force_fallback_adapter: false,
-                }),
-        )
-        .unwrap();
-
-        let (device, _queue) = block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                required_features: wgpu::Features::POLYGON_MODE_LINE,
-                required_limits: wgpu::Limits {
-                    // max_buffer_size: u64::MAX,
-                    ..Default::default()
-                },
-                label: None,
-            },
-            None,
-        ))
-        .unwrap();
-
-        let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = *surface_caps
-            .formats
-            .iter()
-            .find(|f| f.is_srgb())
-            .unwrap_or(&surface_caps.formats[0]);
-
-        let renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1);
-
-        self.renderer = Some(renderer);
+        self.window = Some(WindowSurfaceContext {
+            painter: Painter::new(surface.glow_context.clone(), "", None).unwrap(),
+            surface,
+        });
     }
 
     fn destroy_surface(&mut self) {
-        self.renderer = None;
+        if let Some(mut window) = self.window.take() {
+            window.painter.destroy();
+            window.surface.make_not_current();
+        }
     }
 
     /// Run one frame of egui.
@@ -164,10 +148,28 @@ impl<T: App> Runner<T> {
                 redraw = true;
             }
             PollEvent::Main(main_event) => match main_event {
-                MainEvent::Destroy => {}
+                MainEvent::Destroy => {
+                    self.native_window = None;
+                    self.destroy_surface();
+                }
 
-                MainEvent::InitWindow { .. } => self.initialize_surface(),
-                MainEvent::TerminateWindow { .. } => self.destroy_surface(),
+                MainEvent::InitWindow { .. } => {
+                    log::info!("init window");
+                    self.native_window = self.android_app.native_window();
+                    self.initialize_surface();
+                }
+
+                MainEvent::TerminateWindow { .. } => {
+                    log::info!("terminate window");
+                    self.native_window = None;
+                    self.destroy_surface();
+                }
+
+                MainEvent::WindowResized { .. } => {
+                    self.destroy_surface();
+                    self.native_window = self.android_app.native_window();
+                    self.initialize_surface();
+                }
 
                 MainEvent::GainedFocus => self.focused = true,
                 MainEvent::LostFocus => self.focused = false,
@@ -194,6 +196,7 @@ impl<T: App> Runner<T> {
                 }
 
                 MainEvent::LowMemory => self.app.on_low_memory(),
+
                 MainEvent::ContentRectChanged { .. } => {
                     let content_rect = self.android_app.content_rect();
                     let egui_rect = Rect::from_two_pos(
@@ -212,7 +215,13 @@ impl<T: App> Runner<T> {
             Ok(mut iter) => loop {
                 let read_input = iter.next(|event| {
                     self.input_handler.process(event, |event| {
+                        log::debug!("sending event to egui: {:?}", event);
+
                         self.raw_input.events.push(event);
+
+                        // Any sort of input should trigger a redraw.
+                        // TODO: It would be smarter to ask egui if a redraw is needed as a result of input.
+                        redraw = true;
                     })
                 });
 
@@ -235,8 +244,17 @@ impl<T: App> Runner<T> {
                 .egui_context
                 .tessellate(full_output.shapes, full_output.pixels_per_point);
 
-            if let Some(renderer) = self.renderer.as_mut() {
-                renderer.render(todo!(), &clipped_primitives, todo!());
+            if let Some(native_window) = self.native_window.as_mut() {
+                if let Some(window) = self.window.as_mut() {
+                    window.painter.paint_and_update_textures(
+                        [native_window.width() as _, native_window.height() as _],
+                        3.0,
+                        &clipped_primitives,
+                        &full_output.textures_delta,
+                    );
+
+                    window.surface.swap_buffers();
+                }
             }
         }
     }

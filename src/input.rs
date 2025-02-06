@@ -1,5 +1,8 @@
 use android_activity::{
-    input::{Axis, InputEvent, KeyEvent, MetaState, MotionAction, MotionEvent, Pointer, ToolType},
+    input::{
+        Axis, InputEvent, KeyAction, KeyEvent, MetaState, MotionAction, MotionEvent, Pointer,
+        ToolType,
+    },
     InputStatus,
 };
 use egui::{pos2, vec2, Event, Modifiers, MouseWheelUnit, TouchDeviceId, TouchId, TouchPhase};
@@ -26,6 +29,8 @@ impl InputHandler {
         android_event: &InputEvent,
         mut receiver: impl FnMut(Event),
     ) -> InputStatus {
+        log::debug!("Processing input event: {:?}", android_event);
+
         match android_event {
             InputEvent::KeyEvent(key_event) => {
                 if let Some(event) = to_egui_key_event(key_event) {
@@ -134,10 +139,22 @@ impl InputHandler {
 fn to_egui_key_event(key_event: &KeyEvent) -> Option<Event> {
     let physical_key = crate::keycodes::to_physical_key(key_event.key_code());
 
+    if physical_key.is_none() {
+        log::warn!("Unknown key code: {:?}", key_event.key_code());
+        return None;
+    }
+
+    let pressed = match key_event.action() {
+        KeyAction::Down => true,
+        KeyAction::Up => false,
+        KeyAction::Multiple => return None,
+        _ => return None,
+    };
+
     Some(Event::Key {
         key: physical_key.unwrap(),
         physical_key,
-        pressed: true,
+        pressed,
         repeat: false,
         modifiers: modifiers_from_meta_state(key_event.meta_state()),
     })

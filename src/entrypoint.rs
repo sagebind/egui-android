@@ -1,11 +1,16 @@
 #![doc(hidden)]
 
-use crate::{App, runner::Runner};
+use crate::{logging, runner::Runner, App};
 
 pub use android_activity::AndroidApp;
 
 /// Our implementation of an Android main for `NativeActivity`.
 pub fn main<T: App>(android_app: AndroidApp) {
+    logging::init();
+
+    log::info!("screen density: {:?}", android_app.config().density());
+    log::info!("content rect: {:?}", android_app.content_rect());
+
     let mut runner = Runner::<T>::new(android_app);
 
     loop {
