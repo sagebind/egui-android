@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 /// Core trait for implementing the root of an egui Android application.
 ///
 /// In the official egui ecosystem, this trait is equivalent to
@@ -24,5 +26,14 @@ pub trait App {
     /// Called by Android when the system is running low on memory.
     fn on_low_memory(&mut self) {
         // By default, do nothing.
+    }
+
+    /// Controls a minimum update frequency. `update` will be called at _least_
+    /// this often while your app is focused, even if no input events are
+    /// received or the OS asks for a redraw.
+    ///
+    /// If `None` is returned, `update` will only be called if required.
+    fn min_update_frequency(&self) -> Option<Duration> {
+        Some(Duration::from_secs(60))
     }
 }

@@ -3,8 +3,9 @@ mod graphics;
 mod input;
 mod logging;
 mod runner;
-pub mod entrypoint;
+mod state;
 mod keycodes;
 
+pub mod entrypoint;
 pub use app::App;
 pub use egui;

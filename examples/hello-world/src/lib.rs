@@ -1,3 +1,5 @@
+use core::time;
+
 use egui_android::{egui, App};
 
 struct MyApp {
@@ -22,6 +24,8 @@ impl App for MyApp {
     fn update(&mut self, ctx: &egui::Context) {
         log::debug!("app update called");
 
+        let time = ctx.input(|input| input.time);
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("My egui Application");
 
@@ -39,6 +43,12 @@ impl App for MyApp {
             }
 
             ui.label(format!("Hello '{}', age {}", self.name, self.age));
+
+            ui.label(format!("Last update timestamp: {}", time));
+            ui.label(format!("Focused: {:?}", ui.input(|i| i.viewport().focused)));
+
+            ui.heading("Inspector");
+            ctx.inspection_ui(ui);
         });
     }
 }

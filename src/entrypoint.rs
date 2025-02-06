@@ -1,6 +1,10 @@
 #![doc(hidden)]
 
-use crate::{logging, runner::Runner, App};
+use crate::{
+    logging,
+    runner::{ControlFlow, Runner},
+    App,
+};
 
 pub use android_activity::AndroidApp;
 
@@ -14,7 +18,9 @@ pub fn main<T: App>(android_app: AndroidApp) {
     let mut runner = Runner::<T>::new(android_app);
 
     loop {
-        runner.run_once();
+        if runner.run_once() == ControlFlow::Quit {
+            break;
+        }
     }
 }
 

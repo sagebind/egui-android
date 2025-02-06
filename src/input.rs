@@ -5,7 +5,9 @@ use android_activity::{
     },
     InputStatus,
 };
-use egui::{pos2, vec2, Event, Modifiers, MouseWheelUnit, TouchDeviceId, TouchId, TouchPhase};
+use egui::{
+    pos2, vec2, Event, Modifiers, MouseWheelUnit, PointerButton, TouchDeviceId, TouchId, TouchPhase,
+};
 
 /// Stateful object that processes input events from Android, and translates
 /// them into egui input events.
@@ -27,6 +29,7 @@ impl InputHandler {
     pub fn process(
         &mut self,
         android_event: &InputEvent,
+        pixels_per_point: f32,
         mut receiver: impl FnMut(Event),
     ) -> InputStatus {
         log::debug!("Processing input event: {:?}", android_event);
@@ -49,7 +52,7 @@ impl InputHandler {
                                 delta: vec2(
                                     pointer.axis_value(Axis::Hscroll),
                                     pointer.axis_value(Axis::Vscroll),
-                                ),
+                                ) / pixels_per_point,
                                 modifiers: modifiers_from_meta_state(motion_event.meta_state()),
                                 unit: MouseWheelUnit::Point,
                             });
@@ -69,6 +72,14 @@ impl InputHandler {
                                 motion_event,
                                 &pointer,
                                 TouchPhase::Start,
+                                pixels_per_point,
+                            ));
+
+                            receiver(create_click_event(
+                                motion_event,
+                                &pointer,
+                                true,
+                                pixels_per_point,
                             ));
                         }
 
@@ -77,7 +88,19 @@ impl InputHandler {
 
                     MotionAction::Up => {
                         for pointer in motion_event.pointers() {
-                            receiver(create_touch_event(motion_event, &pointer, TouchPhase::End));
+                            receiver(create_touch_event(
+                                motion_event,
+                                &pointer,
+                                TouchPhase::End,
+                                pixels_per_point,
+                            ));
+
+                            receiver(create_click_event(
+                                motion_event,
+                                &pointer,
+                                false,
+                                pixels_per_point,
+                            ));
                         }
 
                         if motion_event.pointer_count() == 0 {
@@ -89,7 +112,12 @@ impl InputHandler {
 
                     MotionAction::Move => {
                         for pointer in motion_event.pointers() {
-                            receiver(create_touch_event(motion_event, &pointer, TouchPhase::Move));
+                            receiver(create_touch_event(
+                                motion_event,
+                                &pointer,
+                                TouchPhase::Move,
+                                pixels_per_point,
+                            ));
                         }
 
                         InputStatus::Handled
@@ -101,6 +129,7 @@ impl InputHandler {
                                 motion_event,
                                 &pointer,
                                 TouchPhase::Cancel,
+                                pixels_per_point,
                             ));
                         }
 
@@ -116,10 +145,12 @@ impl InputHandler {
                     MotionAction::HoverMove => {
                         for pointer in motion_event.pointers() {
                             if pointer.tool_type() == ToolType::Mouse {
-                                receiver(Event::MouseMoved(vec2(
-                                    pointer.axis_value(Axis::Hscroll),
-                                    pointer.axis_value(Axis::Vscroll),
-                                )));
+                                receiver(Event::MouseMoved(
+                                    vec2(
+                                        pointer.axis_value(Axis::Hscroll),
+                                        pointer.axis_value(Axis::Vscroll),
+                                    ) / pixels_per_point,
+                                ));
                             }
                         }
 
@@ -171,12 +202,31 @@ fn modifiers_from_meta_state(meta_state: MetaState) -> Modifiers {
     }
 }
 
-fn create_touch_event(motion_event: &MotionEvent, pointer: &Pointer, phase: TouchPhase) -> Event {
+fn create_touch_event(
+    motion_event: &MotionEvent,
+    pointer: &Pointer,
+    phase: TouchPhase,
+    pixels_per_point: f32,
+) -> Event {
     Event::Touch {
         device_id: TouchDeviceId(motion_event.device_id() as u64),
         id: TouchId(pointer.pointer_id() as u64),
         phase,
-        pos: pos2(pointer.x(), pointer.y()),
+        pos: pos2(pointer.x(), pointer.y()) / pixels_per_point,
         force: Some(pointer.pressure()),
+    }
+}
+
+fn create_click_event(
+    motion_event: &MotionEvent,
+    pointer: &Pointer,
+    pressed: bool,
+    pixels_per_point: f32,
+) -> Event {
+    Event::PointerButton {
+        pos: pos2(pointer.x(), pointer.y()) / pixels_per_point,
+        button: PointerButton::Primary,
+        pressed,
+        modifiers: Modifiers::NONE,
     }
 }
