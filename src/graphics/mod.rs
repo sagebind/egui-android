@@ -1,5 +1,5 @@
 //! Internal graphics module.
 
-pub(crate) mod glutin;
+pub(crate) mod canvas;
+pub(crate) mod context;
 
-mod window;

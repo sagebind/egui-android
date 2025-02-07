@@ -1,10 +1,14 @@
 # Default to the first one defined in the dev environment
 EMULATOR_AVD := $(shell $(ANDROID_HOME)/emulator/emulator -list-avds | grep -v INFO | head -n1)
-
+export ANDROID_NDK_ROOT := $(ANDROID_HOME)/ndk/27.2.12479018
 
 .PHONY: example
 example:
 	cd examples/hello-world && cargo ndk build
+
+.PHONY: run
+run:
+	cargo apk run -p hello-world
 
 .PHONY: test
 test:

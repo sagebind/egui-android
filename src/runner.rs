@@ -1,7 +1,7 @@
 #![cfg(target_os = "android")]
 
 use crate::{
-    graphics::glutin::{GraphicsContext, GraphicsSurface},
+    graphics::{canvas::Canvas, context::GraphicsContext},
     ime::show_hide_keyboard,
     input::InputHandler,
     state::AppState,
@@ -9,8 +9,7 @@ use crate::{
 };
 use android_activity::{AndroidApp, MainEvent, PollEvent};
 use egui::{pos2, vec2, FullOutput, Margin, Pos2, RawInput, Rect, Theme};
-use egui_glow::Painter;
-use ndk::{configuration::UiModeNight, native_window::NativeWindow};
+use ndk::configuration::UiModeNight;
 use std::{
     mem::take,
     sync::{Arc, Mutex},
@@ -22,18 +21,10 @@ pub(crate) struct Runner<T: App> {
     android_app: AndroidApp,
     raw_input: RawInput,
     graphics_context: GraphicsContext,
-    window: Option<WindowSurfaceContext>,
-    focused: bool,
+    canvas: Option<Canvas>,
     input_handler: InputHandler,
-    screen_rect: Option<Rect>,
     repaint_info: Arc<Mutex<RepaintInfo>>,
     keyboard_visible: bool,
-}
-
-/// When a window exists, this holds the rendering context for that window.
-struct WindowSurfaceContext {
-    surface: GraphicsSurface,
-    painter: Painter,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,10 +69,8 @@ impl<T: App> Runner<T> {
             android_app,
             raw_input: RawInput::default(),
             graphics_context,
-            window: None,
-            focused: true,
+            canvas: None,
             input_handler: InputHandler::new(),
-            screen_rect: None,
             repaint_info,
             keyboard_visible: false,
         }
@@ -113,25 +102,14 @@ impl<T: App> Runner<T> {
         self.app_state.context().request_repaint();
     }
 
-    fn initialize_surface(&mut self) {
-        let Some(window) = self.android_app.native_window() else {
-            return;
+    fn initialize_canvas(&mut self) {
+        if let Some(window) = self.android_app.native_window() {
+            self.canvas = Some(self.graphics_context.create_surface(window));
         };
-
-        let mut surface = self.graphics_context.create_surface(&window);
-        surface.make_current();
-
-        self.window = Some(WindowSurfaceContext {
-            painter: Painter::new(surface.glow_context.clone(), "", None, false).unwrap(),
-            surface,
-        });
     }
 
-    fn destroy_surface(&mut self) {
-        if let Some(mut window) = self.window.take() {
-            window.painter.destroy();
-            window.surface.make_not_current();
-        }
+    fn destroy_canvas(&mut self) {
+        self.canvas = None;
     }
 
     fn process_event(&mut self, event: PollEvent, control_flow: &mut ControlFlow) {
@@ -144,30 +122,36 @@ impl<T: App> Runner<T> {
             }
             PollEvent::Main(main_event) => match main_event {
                 MainEvent::Destroy => {
-                    self.destroy_surface();
+                    self.destroy_canvas();
                     *control_flow = ControlFlow::Quit;
                 }
 
                 MainEvent::InitWindow { .. } => {
                     log::info!("init window");
-                    self.initialize_surface();
+                    self.initialize_canvas();
                     self.update_window_margin();
                 }
 
                 MainEvent::TerminateWindow { .. } => {
                     log::info!("terminate window");
-                    self.destroy_surface();
+                    self.destroy_canvas();
                 }
 
                 MainEvent::WindowResized { .. } => {
-                    // TODO: Dedup `InitWindow` immediately followed by `WindowResized`.
-                    // self.destroy_surface();
-                    // self.native_window = self.android_app.native_window();
-                    // self.initialize_surface();
+                    if let Some(canvas) = self.canvas.as_mut() {
+                        canvas.handle_resize();
+                    }
                 }
 
-                MainEvent::GainedFocus => self.focused = true,
-                MainEvent::LostFocus => self.focused = false,
+                MainEvent::GainedFocus => {
+                    self.raw_input.focused = true;
+                    self.request_redraw();
+                }
+
+                MainEvent::LostFocus => {
+                    self.raw_input.focused = false;
+                    self.request_redraw();
+                }
 
                 // The app is going to be suspended.
                 MainEvent::SaveState { saver, .. } => {
@@ -252,12 +236,8 @@ impl<T: App> Runner<T> {
     /// Do a full app update. Input events will be passed into egui, the user's
     /// update routine will be called, and the UI will be redrawn.
     fn update(&mut self) {
-        if self.window.is_none() {
-            return;
-        }
-
-        if let Some(native_window) = self.android_app.native_window() {
-            self.update_screen_rect(&native_window);
+        if let Some(mut canvas) = self.canvas.take() {
+            self.raw_input.screen_rect = Some(self.screen_rect(&canvas));
 
             let mut full_output = self.update_egui();
 
@@ -266,26 +246,11 @@ impl<T: App> Runner<T> {
                 .context()
                 .tessellate(take(&mut full_output.shapes), full_output.pixels_per_point);
 
-            let window = self.window.as_mut().unwrap();
-
-            let screen_size = [native_window.width() as _, native_window.height() as _];
-
-            egui_glow::painter::clear(
-                &window.surface.glow_context,
-                screen_size,
-                [0.0, 0.0, 0.0, 0.0],
-            );
-
-            window.painter.paint_and_update_textures(
-                screen_size,
-                full_output.pixels_per_point,
-                &clipped_primitives,
-                &full_output.textures_delta,
-            );
-
-            window.surface.swap_buffers();
+            canvas.repaint(&mut full_output, &clipped_primitives);
 
             self.handle_ime(&full_output);
+
+            self.canvas = Some(canvas);
         }
     }
 
@@ -293,23 +258,23 @@ impl<T: App> Runner<T> {
     fn update_egui(&mut self) -> FullOutput {
         // Prepare the raw input for egui. This is when we have our best
         // opportunity to provide egui with as much useful context as possible.
-        let mut raw_input = take(&mut self.raw_input);
 
-        raw_input.focused = self.focused;
-        raw_input.screen_rect = self.screen_rect;
-        raw_input.system_theme = match self.android_app.config().ui_mode_night() {
+        self.raw_input.system_theme = match self.android_app.config().ui_mode_night() {
             UiModeNight::No => Some(Theme::Light),
             UiModeNight::Yes => Some(Theme::Dark),
             _ => None,
         };
 
-        let viewport_info = raw_input.viewports.get_mut(&raw_input.viewport_id).unwrap();
-        viewport_info.focused = Some(self.focused);
-        viewport_info.native_pixels_per_point = self.calculate_pixels_per_point();
+        let ppp = self.calculate_pixels_per_point();
+        let viewport_info = self
+            .raw_input
+            .viewports
+            .get_mut(&self.raw_input.viewport_id)
+            .unwrap();
+        viewport_info.focused = Some(self.raw_input.focused);
+        viewport_info.native_pixels_per_point = ppp;
 
-        let full_output = self.app_state.update(raw_input);
-
-        full_output
+        self.app_state.update(self.raw_input.take())
     }
 
     fn calculate_pixels_per_point(&self) -> Option<f32> {
@@ -320,10 +285,11 @@ impl<T: App> Runner<T> {
             .map(|ppp| ppp.round())
     }
 
-    fn update_screen_rect(&mut self, native_window: &NativeWindow) {
+    fn screen_rect(&self, canvas: &Canvas) -> Rect {
         let pixels_per_point = self.calculate_pixels_per_point().unwrap_or(1.0);
-        let width = native_window.width() as f32 / pixels_per_point;
-        let height = native_window.height() as f32 / pixels_per_point;
+        let [width, height] = canvas.screen_size();
+        let width = width as f32 / pixels_per_point;
+        let height = height as f32 / pixels_per_point;
 
         // let android_activity::Rect {
         //     left,
@@ -336,10 +302,7 @@ impl<T: App> Runner<T> {
         // let bottom_right = pos2(right as f32, bottom as f32) / pixels_per_point;
 
         // self.screen_rect = Some(Rect::from_two_pos(top_left, bottom_right));
-        self.screen_rect = Some(Rect::from_min_size(
-            Pos2::new(0.0, 0.0),
-            vec2(width, height),
-        ));
+        Rect::from_min_size(Pos2::new(0.0, 0.0), vec2(width, height))
     }
 
     fn window_margin(&self) -> Margin {

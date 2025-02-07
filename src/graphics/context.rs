@@ -2,34 +2,28 @@
 
 use egui_glow::glow;
 use glutin::{
-    api::egl::{
-        context::{NotCurrentContext, PossiblyCurrentContext},
-        display::Display,
-        surface::Surface,
-    },
+    api::egl::display::Display,
     config::ConfigTemplate,
-    context::{
-        ContextApi, ContextAttributesBuilder, NotCurrentGlContext, PossiblyCurrentGlContext,
-    },
+    context::{ContextApi, ContextAttributesBuilder, NotCurrentGlContext},
     display::GlDisplay,
-    surface::{GlSurface, SurfaceAttributesBuilder, WindowSurface},
+    surface::{SurfaceAttributesBuilder, WindowSurface},
 };
 use ndk::native_window::NativeWindow;
-use raw_window_handle::{AndroidDisplayHandle, RawDisplayHandle};
-use std::{
-    ffi::{CStr, CString},
-    num::NonZeroU32,
-    sync::Arc,
+use raw_window_handle::{
+    AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
+use std::{ffi::CString, num::NonZeroU32};
 
-use super::window::as_raw_window_handle;
+use super::canvas::Canvas;
 
+/// Establishes a connection to Android's graphics API.
 pub(crate) struct GraphicsContext {
     display: Display,
     config_template: ConfigTemplate,
 }
 
 impl GraphicsContext {
+    /// Create a new instance. Only one instance should be created per process.
     pub(crate) fn new() -> Self {
         let display = get_default_display();
 
@@ -45,14 +39,15 @@ impl GraphicsContext {
         }
     }
 
-    pub(crate) fn create_surface(&mut self, window: &NativeWindow) -> GraphicsSurface {
-        let raw_window_handle = as_raw_window_handle(window);
-
+    /// Create a drawing surface for a window.
+    pub(crate) fn create_surface(&mut self, window: NativeWindow) -> Canvas {
         let config_template = self.config_template.clone();
         let config = unsafe { self.display.find_configs(config_template) }
             .unwrap()
             .next()
             .unwrap();
+
+        let raw_window_handle = as_raw_window_handle(&window);
 
         let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new().build(
             raw_window_handle,
@@ -70,58 +65,23 @@ impl GraphicsContext {
             .with_context_api(ContextApi::Gles(None))
             .build(Some(raw_window_handle));
 
-        let egl_context =
+        let gl_context =
             unsafe { self.display.create_context(&config, &context_attributes) }.unwrap();
-        let egl_context = egl_context.make_current(&surface).unwrap();
+        let gl_context = gl_context.make_current(&surface).unwrap();
 
-        let glow_context = Arc::new(unsafe {
+        let glow_context = unsafe {
             glow::Context::from_loader_function(|s| {
                 let s = CString::new(s).unwrap();
                 self.display.get_proc_address(&s).cast()
             })
-        });
+        };
 
-        GraphicsSurface {
-            display: self.display.clone(),
+        Canvas::new(
+            window,
             surface,
-            gl_context_current: Some(egl_context),
-            gl_context_not_current: None,
+            gl_context,
             glow_context,
-        }
-    }
-}
-
-pub(crate) struct GraphicsSurface {
-    display: Display,
-    surface: Surface<WindowSurface>,
-    gl_context_current: Option<PossiblyCurrentContext>,
-    gl_context_not_current: Option<NotCurrentContext>,
-    pub(crate) glow_context: Arc<glow::Context>,
-}
-
-impl GraphicsSurface {
-    pub(crate) fn make_current(&mut self) {
-        if let Some(context) = self.gl_context_not_current.take() {
-            self.gl_context_current = Some(unsafe { context.make_current(&self.surface) }.unwrap());
-        }
-    }
-
-    pub(crate) fn make_not_current(&mut self) {
-        if let Some(context) = self.gl_context_current.take() {
-            self.gl_context_not_current = Some(context.make_not_current().unwrap());
-        }
-    }
-
-    pub(crate) fn swap_buffers(&mut self) {
-        if let Some(context) = self.gl_context_current.as_mut() {
-            self.surface.swap_buffers(context).unwrap();
-        }
-    }
-}
-
-impl Drop for GraphicsSurface {
-    fn drop(&mut self) {
-        self.make_not_current();
+        )
     }
 }
 
@@ -130,4 +90,8 @@ fn get_default_display() -> Display {
     let raw_display_handle = RawDisplayHandle::Android(AndroidDisplayHandle::new());
 
     unsafe { Display::new(raw_display_handle) }.unwrap()
+}
+
+fn as_raw_window_handle(native_window: &NativeWindow) -> RawWindowHandle {
+    RawWindowHandle::from(AndroidNdkWindowHandle::new(native_window.ptr().cast()))
 }

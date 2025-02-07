@@ -6,7 +6,8 @@ use android_activity::{
     InputStatus,
 };
 use egui::{
-    pos2, vec2, Event, Modifiers, MouseWheelUnit, PointerButton, TouchDeviceId, TouchId, TouchPhase,
+    pos2, vec2, Event, Modifiers, MouseWheelUnit, PointerButton, Pos2, TouchDeviceId, TouchId,
+    TouchPhase,
 };
 
 /// Stateful object that processes input events from Android, and translates
@@ -59,12 +60,7 @@ impl InputHandler {
                         InputStatus::Handled
                     }
 
-                    MotionAction::PointerDown => {
-                        // Event::PointerButton { pos: (), button: (), pressed: (), modifiers: () };
-                        todo!()
-                    }
-
-                    MotionAction::Down => {
+                    MotionAction::Down | MotionAction::PointerDown => {
                         for pointer in motion_event.pointers() {
                             receiver(create_touch_event(
                                 motion_event,
@@ -72,10 +68,12 @@ impl InputHandler {
                                 TouchPhase::Start,
                                 pixels_per_point,
                             ));
+                        }
 
+                        if motion_event.pointer_count() == 1 {
                             receiver(create_click_event(
                                 motion_event,
-                                &pointer,
+                                &motion_event.pointers().next().unwrap(),
                                 true,
                                 pixels_per_point,
                             ));
@@ -84,7 +82,7 @@ impl InputHandler {
                         InputStatus::Handled
                     }
 
-                    MotionAction::Up => {
+                    MotionAction::Up | MotionAction::PointerUp => {
                         for pointer in motion_event.pointers() {
                             receiver(create_touch_event(
                                 motion_event,
@@ -92,16 +90,18 @@ impl InputHandler {
                                 TouchPhase::End,
                                 pixels_per_point,
                             ));
+                        }
 
+                        if motion_event.pointer_count() == 1 {
                             receiver(create_click_event(
                                 motion_event,
-                                &pointer,
+                                &motion_event.pointers().next().unwrap(),
                                 false,
                                 pixels_per_point,
                             ));
                         }
 
-                        if motion_event.pointer_count() == 0 {
+                        if motion_event.pointer_count() <= 1 {
                             receiver(Event::PointerGone);
                         }
 
@@ -116,6 +116,11 @@ impl InputHandler {
                                 TouchPhase::Move,
                                 pixels_per_point,
                             ));
+                        }
+
+                        if motion_event.pointer_count() == 1 {
+                            let pointer = motion_event.pointers().next().unwrap();
+                            receiver(Event::PointerMoved(pointer_pos(&pointer, pixels_per_point)));
                         }
 
                         InputStatus::Handled
@@ -155,12 +160,23 @@ impl InputHandler {
                         InputStatus::Handled
                     }
 
-                    _ => InputStatus::Unhandled,
+                    e => {
+                        log::warn!("unknown motion event: {e:?}");
+                        InputStatus::Unhandled
+                    }
                 }
             }
 
             // Some unknown event type.
-            _ => InputStatus::Unhandled,
+            InputEvent::TextEvent(text_event) => {
+                log::warn!("unhandled text event: {text_event:?}");
+                InputStatus::Unhandled
+            }
+
+            unknown => {
+                log::warn!("unhandled input event: {unknown:?}");
+                InputStatus::Unhandled
+            }
         }
     }
 }
@@ -210,7 +226,7 @@ fn create_touch_event(
         device_id: TouchDeviceId(motion_event.device_id() as u64),
         id: TouchId(pointer.pointer_id() as u64),
         phase,
-        pos: pos2(pointer.x(), pointer.y()) / pixels_per_point,
+        pos: pointer_pos(pointer, pixels_per_point),
         force: Some(pointer.pressure()),
     }
 }
@@ -222,9 +238,13 @@ fn create_click_event(
     pixels_per_point: f32,
 ) -> Event {
     Event::PointerButton {
-        pos: pos2(pointer.x(), pointer.y()) / pixels_per_point,
+        pos: pointer_pos(pointer, pixels_per_point),
         button: PointerButton::Primary,
         pressed,
         modifiers: Modifiers::NONE,
     }
+}
+
+fn pointer_pos(pointer: &Pointer, pixels_per_point: f32) -> Pos2 {
+    pos2(pointer.x(), pointer.y()) / pixels_per_point
 }

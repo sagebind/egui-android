@@ -25,6 +25,8 @@ impl App for MyApp {
         let time = ctx.input(|input| input.time);
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.add_space(64.0);
+
             ui.heading("My egui Application");
 
             ui.horizontal(|ui| {

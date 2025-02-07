@@ -2,6 +2,8 @@ use android_activity::AndroidApp;
 use jni::{objects::JObject, JavaVM};
 
 fn show_hide_keyboard_fallible(app: &AndroidApp, show: bool) -> Result<(), jni::errors::Error> {
+    log::info!("show/hide keyboard attempt: {show}");
+
     // After Android R, it is no longer possible to show the soft keyboard
     // with `showSoftInput` alone.
     // Here we use `WindowInsetsController`, which is the other way.
