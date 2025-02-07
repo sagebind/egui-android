@@ -37,7 +37,7 @@ impl Canvas {
     }
 
     pub(crate) fn handle_resize(&mut self) {
-        let [width, height] = self.screen_size();
+        let [width, height] = self.window_size();
 
         if let Some(context) = self.gl_context_current.as_mut() {
             self.surface.resize(
@@ -53,7 +53,10 @@ impl Canvas {
         full_output: &mut FullOutput,
         clipped_primitives: &[egui::ClippedPrimitive],
     ) {
-        let screen_size = self.screen_size();
+        let screen_size = [
+            self.surface.width().unwrap(),
+            self.surface.height().unwrap(),
+        ];
 
         egui_glow::painter::clear(self.painter.gl(), screen_size, [0.0, 0.0, 0.0, 0.0]);
 
@@ -67,7 +70,7 @@ impl Canvas {
         self.swap_buffers();
     }
 
-    pub(crate) fn screen_size(&self) -> [u32; 2] {
+    pub(crate) fn window_size(&self) -> [u32; 2] {
         [
             self.native_window.width() as _,
             self.native_window.height() as _,

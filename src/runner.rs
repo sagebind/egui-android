@@ -128,8 +128,9 @@ impl<T: App> Runner<T> {
 
                 MainEvent::InitWindow { .. } => {
                     log::info!("init window");
+                    self.apply_current_config();
                     self.initialize_canvas();
-                    self.update_window_margin();
+                    self.request_redraw();
                 }
 
                 MainEvent::TerminateWindow { .. } => {
@@ -138,18 +139,20 @@ impl<T: App> Runner<T> {
                 }
 
                 MainEvent::WindowResized { .. } => {
+                    self.apply_current_config();
                     if let Some(canvas) = self.canvas.as_mut() {
                         canvas.handle_resize();
                     }
+                    self.request_redraw();
                 }
 
                 MainEvent::GainedFocus => {
-                    self.raw_input.focused = true;
+                    self.set_focused(true);
                     self.request_redraw();
                 }
 
                 MainEvent::LostFocus => {
-                    self.raw_input.focused = false;
+                    self.set_focused(false);
                     self.request_redraw();
                 }
 
@@ -183,13 +186,16 @@ impl<T: App> Runner<T> {
                     self.app_state
                         .inner_mut()
                         .on_content_rect_changed(egui_rect);
-                    self.update_window_margin();
+                    self.apply_current_config();
+                }
+
+                MainEvent::ConfigChanged { .. } => {
+                    self.apply_current_config();
+                    self.request_redraw();
                 }
 
                 MainEvent::InputAvailable => {
                     self.process_pending_input();
-                    // Any sort of input should trigger a redraw.
-                    // TODO: It would be smarter to ask egui if a redraw is needed as a result of input.
                     self.request_redraw();
                 }
 
@@ -199,7 +205,10 @@ impl<T: App> Runner<T> {
         }
 
         // Event handled, now check if we need to repaint.
+        self.repaint_if_needed();
+    }
 
+    fn repaint_if_needed(&mut self) {
         self.app_state.update_clock();
 
         let mut repaint_info = self.repaint_info.lock().unwrap();
@@ -207,12 +216,12 @@ impl<T: App> Runner<T> {
         if repaint_info.needs_repaint && self.app_state.now() >= repaint_info.deadline {
             repaint_info.needs_repaint = false;
             drop(repaint_info);
-            self.update();
+            self.repaint();
         }
     }
 
     fn process_pending_input(&mut self) {
-        let pixels_per_point = self.calculate_pixels_per_point().unwrap_or(1.0);
+        let pixels_per_point = self.pixels_per_point();
 
         match self.android_app.input_events_iter() {
             Ok(mut iter) => loop {
@@ -235,11 +244,9 @@ impl<T: App> Runner<T> {
 
     /// Do a full app update. Input events will be passed into egui, the user's
     /// update routine will be called, and the UI will be redrawn.
-    fn update(&mut self) {
+    fn repaint(&mut self) {
         if let Some(mut canvas) = self.canvas.take() {
-            self.raw_input.screen_rect = Some(self.screen_rect(&canvas));
-
-            let mut full_output = self.update_egui();
+            let mut full_output = self.app_state.update(self.raw_input.take());
 
             let clipped_primitives = self
                 .app_state
@@ -254,59 +261,8 @@ impl<T: App> Runner<T> {
         }
     }
 
-    /// Run one frame of egui.
-    fn update_egui(&mut self) -> FullOutput {
-        // Prepare the raw input for egui. This is when we have our best
-        // opportunity to provide egui with as much useful context as possible.
-
-        self.raw_input.system_theme = match self.android_app.config().ui_mode_night() {
-            UiModeNight::No => Some(Theme::Light),
-            UiModeNight::Yes => Some(Theme::Dark),
-            _ => None,
-        };
-
-        let ppp = self.calculate_pixels_per_point();
-        let viewport_info = self
-            .raw_input
-            .viewports
-            .get_mut(&self.raw_input.viewport_id)
-            .unwrap();
-        viewport_info.focused = Some(self.raw_input.focused);
-        viewport_info.native_pixels_per_point = ppp;
-
-        self.app_state.update(self.raw_input.take())
-    }
-
-    fn calculate_pixels_per_point(&self) -> Option<f32> {
-        self.android_app
-            .config()
-            .density()
-            .map(|density| density as f32 / 160.0)
-            .map(|ppp| ppp.round())
-    }
-
-    fn screen_rect(&self, canvas: &Canvas) -> Rect {
-        let pixels_per_point = self.calculate_pixels_per_point().unwrap_or(1.0);
-        let [width, height] = canvas.screen_size();
-        let width = width as f32 / pixels_per_point;
-        let height = height as f32 / pixels_per_point;
-
-        // let android_activity::Rect {
-        //     left,
-        //     top,
-        //     right,
-        //     bottom,
-        // } = self.android_app.content_rect();
-
-        // let top_left = pos2(left as f32, top as f32) / pixels_per_point;
-        // let bottom_right = pos2(right as f32, bottom as f32) / pixels_per_point;
-
-        // self.screen_rect = Some(Rect::from_two_pos(top_left, bottom_right));
-        Rect::from_min_size(Pos2::new(0.0, 0.0), vec2(width, height))
-    }
-
     fn window_margin(&self) -> Margin {
-        let pixels_per_point = self.calculate_pixels_per_point().unwrap_or(1.0);
+        let pixels_per_point = self.pixels_per_point();
         let content_rect = self.android_app.content_rect();
 
         Margin {
@@ -315,12 +271,6 @@ impl<T: App> Runner<T> {
             top: 127,  // + (content_rect.top as f32 / pixels_per_point) as i8,
             bottom: 0, //(content_rect.bottom as f32 / pixels_per_point) as i8,
         }
-    }
-
-    fn update_window_margin(&mut self) {
-        self.app_state
-            .context()
-            .style_mut(|style| style.spacing.window_margin = self.window_margin());
     }
 
     fn handle_ime(&mut self, full_output: &FullOutput) {
@@ -343,5 +293,72 @@ impl<T: App> Runner<T> {
             }
             _ => {}
         }
+    }
+
+    fn pixels_per_point(&self) -> f32 {
+        self.raw_input
+            .viewport()
+            .native_pixels_per_point
+            .unwrap_or(1.0)
+    }
+
+    fn set_focused(&mut self, focused: bool) {
+        self.raw_input.focused = focused;
+
+        let viewport_info = self
+            .raw_input
+            .viewports
+            .get_mut(&self.raw_input.viewport_id)
+            .unwrap();
+        viewport_info.focused = Some(focused);
+    }
+
+    fn apply_current_config(&mut self) {
+        let config = self.android_app.config();
+
+        self.raw_input.system_theme = match config.ui_mode_night() {
+            UiModeNight::No => Some(Theme::Light),
+            UiModeNight::Yes => Some(Theme::Dark),
+            _ => None,
+        };
+
+        let viewport_info = self
+            .raw_input
+            .viewports
+            .get_mut(&self.raw_input.viewport_id)
+            .unwrap();
+
+        // Calculate pixels per point based on screen density.
+        viewport_info.native_pixels_per_point = config
+            .density()
+            .map(|density| density as f32 / 160.0)
+            .map(|ppp| ppp.round());
+
+        if let Some(canvas) = self.canvas.as_ref() {
+            let pixels_per_point = viewport_info.native_pixels_per_point.unwrap_or(1.0);
+            let [width, height] = canvas.window_size();
+            let width = width as f32 / pixels_per_point;
+            let height = height as f32 / pixels_per_point;
+
+            // let android_activity::Rect {
+            //     left,
+            //     top,
+            //     right,
+            //     bottom,
+            // } = self.android_app.content_rect();
+
+            // let top_left = pos2(left as f32, top as f32) / pixels_per_point;
+            // let bottom_right = pos2(right as f32, bottom as f32) / pixels_per_point;
+
+            // self.screen_rect = Some(Rect::from_two_pos(top_left, bottom_right));
+            self.raw_input.screen_rect = Some(Rect::from_min_size(
+                Pos2::new(0.0, 0.0),
+                vec2(width, height),
+            ));
+        }
+
+        self.app_state
+            .context()
+            .style_mut(|style| style.spacing.window_margin = self.window_margin());
     }
 }
