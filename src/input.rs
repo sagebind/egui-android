@@ -36,9 +36,11 @@ impl InputHandler {
         match android_event {
             InputEvent::KeyEvent(key_event) => {
                 if let Some(event) = to_egui_key_event(key_event) {
+                    log::info!("key event created: {event:?}");
                     receiver(event);
                     InputStatus::Handled
                 } else {
+                    log::warn!("key event not handled: {key_event:?}");
                     InputStatus::Unhandled
                 }
             }
