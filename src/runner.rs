@@ -8,7 +8,7 @@ use crate::{
     App,
 };
 use android_activity::{AndroidApp, MainEvent, PollEvent};
-use egui::{pos2, vec2, FullOutput, Margin, Pos2, RawInput, Rect, Theme};
+use egui::{pos2, vec2, Event, FullOutput, ImeEvent, Margin, Pos2, RawInput, Rect, Theme};
 use ndk::configuration::UiModeNight;
 use std::{
     mem::take,
@@ -64,11 +64,11 @@ impl<T: App> Runner<T> {
 
         Self {
             app_state,
-            android_app,
+            android_app: android_app.clone(),
             graphics_context: GraphicsContext::new(),
             canvas: None,
             raw_input: RawInput::default(),
-            input_handler: InputHandler::new(),
+            input_handler: InputHandler::new(android_app),
             repaint_info,
             keyboard_visible: false,
         }
@@ -148,12 +148,12 @@ impl<T: App> Runner<T> {
                 }
 
                 MainEvent::GainedFocus => {
-                    self.set_focused(true);
+                    self.update_focus(true);
                     self.request_repaint();
                 }
 
                 MainEvent::LostFocus => {
-                    self.set_focused(false);
+                    self.update_focus(false);
                     self.request_repaint();
                 }
 
@@ -270,6 +270,7 @@ impl<T: App> Runner<T> {
                 // crate::ime::show_hide_keyboard_alt(&self.android_app, true, true);
                 show_hide_keyboard(&self.android_app, true);
                 self.keyboard_visible = true;
+                self.raw_input.events.push(Event::Ime(ImeEvent::Enabled));
                 self.request_repaint();
             }
             (false, true) => {
@@ -277,6 +278,7 @@ impl<T: App> Runner<T> {
                 // show_hide_keyboard(&self.android_app, false);
                 self.android_app.hide_soft_input(false);
                 self.keyboard_visible = false;
+                self.raw_input.events.push(Event::Ime(ImeEvent::Disabled));
                 self.request_repaint();
             }
             _ => {}
@@ -290,8 +292,9 @@ impl<T: App> Runner<T> {
             .unwrap_or(1.0)
     }
 
-    fn set_focused(&mut self, focused: bool) {
+    fn update_focus(&mut self, focused: bool) {
         self.raw_input.focused = focused;
+        self.raw_input.events.push(Event::WindowFocused(focused));
 
         let viewport_info = self
             .raw_input
@@ -322,8 +325,9 @@ impl<T: App> Runner<T> {
             .map(|density| density as f32 / 160.0)
             .map(|ppp| ppp.round());
 
+        let pixels_per_point = viewport_info.native_pixels_per_point.unwrap_or(1.0);
+
         if let Some(canvas) = self.canvas.as_ref() {
-            let pixels_per_point = viewport_info.native_pixels_per_point.unwrap_or(1.0);
             let [width, height] = canvas.window_size();
             let width = width as f32 / pixels_per_point;
             let height = height as f32 / pixels_per_point;
@@ -347,11 +351,10 @@ impl<T: App> Runner<T> {
 
         self.app_state
             .context()
-            .style_mut(|style| style.spacing.window_margin = self.window_margin());
+            .style_mut(|style| style.spacing.window_margin = self.window_margin(pixels_per_point));
     }
 
-    fn window_margin(&self) -> Margin {
-        let pixels_per_point = self.pixels_per_point();
+    fn window_margin(&self, pixels_per_point: f32) -> Margin {
         let content_rect = self.android_app.content_rect();
 
         Margin {

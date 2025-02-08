@@ -1,9 +1,9 @@
 use android_activity::{
     input::{
-        Axis, InputEvent, KeyAction, KeyEvent, MetaState, MotionAction, MotionEvent, Pointer,
-        ToolType,
+        Axis, InputEvent, KeyAction, KeyEvent, KeyMapChar, Keycode, MetaState, MotionAction,
+        MotionEvent, Pointer, ToolType,
     },
-    InputStatus,
+    AndroidApp, InputStatus,
 };
 use egui::{
     pos2, vec2, Event, Modifiers, MouseWheelUnit, PointerButton, Pos2, TouchDeviceId, TouchId,
@@ -12,11 +12,13 @@ use egui::{
 
 /// Stateful object that processes input events from Android, and translates
 /// them into egui input events.
-pub(crate) struct InputHandler {}
+pub(crate) struct InputHandler {
+    app: AndroidApp,
+}
 
 impl InputHandler {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(app: AndroidApp) -> Self {
+        Self { app }
     }
 
     /// Process an input event.
@@ -35,7 +37,7 @@ impl InputHandler {
     ) -> InputStatus {
         match android_event {
             InputEvent::KeyEvent(key_event) => {
-                if let Some(event) = to_egui_key_event(key_event) {
+                if let Some(event) = self.to_egui_key_event(key_event) {
                     log::info!("key event created: {event:?}");
                     receiver(event);
                     InputStatus::Handled
@@ -181,30 +183,62 @@ impl InputHandler {
             }
         }
     }
-}
 
-fn to_egui_key_event(key_event: &KeyEvent) -> Option<Event> {
-    let physical_key = crate::keycodes::to_physical_key(key_event.key_code());
+    fn to_egui_key_event(&self, key_event: &KeyEvent) -> Option<Event> {
+        let device_id = key_event.device_id();
 
-    if physical_key.is_none() {
-        log::warn!("Unknown key code: {:?}", key_event.key_code());
-        return None;
+        let key_map = match self.app.device_key_character_map(device_id) {
+            Ok(key_map) => key_map,
+            Err(err) => {
+                log::warn!("failed to look up `KeyCharacterMap` for device {device_id}: {err:?}");
+                return None;
+            }
+        };
+
+        match key_map.get(key_event.key_code(), key_event.meta_state()) {
+            Ok(KeyMapChar::Unicode(unicode)) => {
+                if key_event.action() == KeyAction::Down {
+                    Some(Event::Text(unicode.into()))
+                } else {
+                    None
+                }
+            }
+            Ok(KeyMapChar::CombiningAccent(accent)) => {
+                // if key_event.action() == KeyAction::Down {
+                //     *combining_accent = Some(accent);
+                // }
+                // Some(KeyMapChar::CombiningAccent(accent))
+                None
+            }
+            Ok(KeyMapChar::None) => {
+                // Leave any combining_accent state in tact (seems to match how other
+                // Android apps work)
+                None
+            }
+            Err(err) => {
+                log::warn!("KeyEvent: Failed to get key map character: {err:?}");
+                // *combining_accent = None;
+                None
+            }
+        }
+
+        // let physical_key = crate::keycodes::to_physical_key(key_event.key_code());
+
+        // if physical_key.is_none() {
+        //     log::warn!("Unknown key code: {:?}", key_event.key_code());
+        //     return None;
+        // }
+
+        // let pressed = key_event.action() == KeyAction::Down;
+
+        // Some(Event::Key {
+        //     key: physical_key.unwrap(),
+        //     physical_key: None,
+        //     pressed,
+        //     repeat: key_event.repeat_count() > 0,
+        //     modifiers: modifiers_from_meta_state(key_event.meta_state()),
+        // })
     }
-
-    let pressed = match key_event.action() {
-        KeyAction::Down => true,
-        KeyAction::Up => false,
-        KeyAction::Multiple => return None,
-        _ => return None,
-    };
-
-    Some(Event::Key {
-        key: physical_key.unwrap(),
-        physical_key,
-        pressed,
-        repeat: false,
-        modifiers: modifiers_from_meta_state(key_event.meta_state()),
-    })
 }
 
 /// Derive keyboard modifiers from the meta state of an Android key event.

@@ -38,6 +38,7 @@ macro_rules! populate_key_map {
     }};
 }
 
+// https://github.com/rust-windowing/winit/blob/master/src/platform_impl/android/keycodes.rs
 pub(crate) fn to_physical_key(keycode: Keycode) -> Option<Key> {
     static PHYSICAL_KEY_MAP: OnceLock<Vec<Option<Key>>> = OnceLock::new();
 
@@ -58,6 +59,11 @@ pub(crate) fn to_physical_key(keycode: Keycode) -> Option<Key> {
             Numpad9 => Num9,
             NumpadSubtract => Minus,
             NumpadEquals => Equals,
+            DpadUp => ArrowUp,
+            DpadDown => ArrowDown,
+            DpadLeft => ArrowLeft,
+            DpadRight => ArrowRight,
+            Del => Backspace,
         })
     });
 
