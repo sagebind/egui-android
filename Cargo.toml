@@ -11,6 +11,7 @@ logger = ["dep:android_logger", "dep:log-panics"]
 test = ["ndk/test"]
 
 [dependencies]
+android_clipboard = "0.1"
 bincode = "1.3"
 egui_glow = "0.31"
 jni = "0.21"

@@ -290,7 +290,7 @@ fn create_touch_event(
 }
 
 fn create_click_event(
-    motion_event: &MotionEvent,
+    _motion_event: &MotionEvent,
     pointer: &Pointer,
     pressed: bool,
     pixels_per_point: f32,

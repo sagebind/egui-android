@@ -1,4 +1,4 @@
-use egui_android::{egui, App};
+use egui_android::{egui::{self, ViewportCommand}, App};
 
 struct MyApp {
     name: String,
@@ -23,7 +23,7 @@ impl App for MyApp {
         let time = ctx.input(|input| input.time);
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add_space(64.0);
+            ui.add_space(32.0);
 
             ui.heading("My egui Application");
 
@@ -44,6 +44,22 @@ impl App for MyApp {
 
             ui.label(format!("Last update timestamp: {}", time));
             ui.label(format!("Focused: {:?}", ui.input(|i| i.viewport().focused)));
+
+            ui.heading("Viewport Support");
+
+            if ui.button("Quit").clicked() {
+                ctx.send_viewport_cmd(ViewportCommand::Close);
+            }
+
+            if ui.button("Enter Fullscreen").clicked() {
+                ctx.send_viewport_cmd(ViewportCommand::Fullscreen(true));
+            }
+
+            if ui.button("Exit Fullscreen").clicked() {
+                ctx.send_viewport_cmd(ViewportCommand::Fullscreen(false));
+            }
+
+            ui.add_space(16.0);
 
             ui.heading("Inspector");
             ctx.inspection_ui(ui);

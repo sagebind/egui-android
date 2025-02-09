@@ -1,16 +1,21 @@
-#![cfg(target_os = "android")]
-
 use crate::{
     graphics::GraphicsContext, ime::show_hide_keyboard, input::InputHandler, state::AppState, App,
 };
-use android_activity::{AndroidApp, MainEvent, PollEvent};
-use egui::{pos2, vec2, Event, FullOutput, Margin, Pos2, RawInput, Rect, Theme};
+use android_activity::{AndroidApp, MainEvent, PollEvent, WindowManagerFlags};
+use egui::{
+    pos2, vec2, Event, FullOutput, Margin, Pos2, RawInput, Rect, Theme, ViewportCommand,
+    ViewportId, ViewportOutput,
+};
 use ndk::configuration::UiModeNight;
 use std::{
     mem::take,
     sync::{Arc, Mutex},
     time::Instant,
 };
+
+/// Actual base DPI in Android is 160, but we use a smaller value to get egui to
+/// scale a bit larger, for better legibility on mobile.
+const BASE_DPI: f32 = 120.0;
 
 pub(crate) struct Runner<T: App> {
     app_state: AppState<T>,
@@ -20,12 +25,7 @@ pub(crate) struct Runner<T: App> {
     input_handler: InputHandler,
     repaint_info: Arc<Mutex<RepaintInfo>>,
     keyboard_visible: bool,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ControlFlow {
-    Continue,
-    Quit,
+    close_requested: bool,
 }
 
 struct RepaintInfo {
@@ -65,11 +65,17 @@ impl<T: App> Runner<T> {
             input_handler: InputHandler::new(android_app),
             repaint_info,
             keyboard_visible: false,
+            close_requested: false,
         }
     }
 
-    pub(crate) fn run_once(&mut self) -> ControlFlow {
-        let mut control_flow = ControlFlow::Continue;
+    pub(crate) fn run_until_closed(&mut self) {
+        while !self.close_requested {
+            self.run_once();
+        }
+    }
+
+    pub(crate) fn run_once(&mut self) {
         let mut timeout = self.app_state.inner().min_update_frequency();
 
         let repaint_info = self.repaint_info.lock().unwrap();
@@ -83,14 +89,12 @@ impl<T: App> Runner<T> {
 
         drop(repaint_info);
 
-        self.android_app.clone().poll_events(timeout, move |event| {
-            self.process_event(event, &mut control_flow);
-
-            // Event handled, now check if we need to repaint.
-            self.repaint_if_needed();
+        self.android_app.clone().poll_events(timeout, |event| {
+            self.process_event(event);
         });
 
-        control_flow
+        // Event handled, now check if we need to repaint.
+        self.repaint_if_needed();
     }
 
     fn request_repaint(&self) {
@@ -103,7 +107,7 @@ impl<T: App> Runner<T> {
         };
     }
 
-    fn process_event(&mut self, event: PollEvent, control_flow: &mut ControlFlow) {
+    fn process_event(&mut self, event: PollEvent) {
         match event {
             PollEvent::Wake => {}
             PollEvent::Timeout => {
@@ -114,7 +118,7 @@ impl<T: App> Runner<T> {
             PollEvent::Main(main_event) => match main_event {
                 MainEvent::Destroy => {
                     self.graphics_context.detach_window();
-                    *control_flow = ControlFlow::Quit;
+                    self.close_requested = true;
                 }
 
                 MainEvent::InitWindow { .. } => {
@@ -234,9 +238,13 @@ impl<T: App> Runner<T> {
     /// Do a full app update. Input events will be passed into egui, the user's
     /// update routine will be called, and the UI will be redrawn.
     fn repaint(&mut self) {
-        if let Some(mut renderer) = self.graphics_context.renderer() {
-            let mut full_output = self.app_state.update(self.raw_input.take());
+        let mut full_output = self.app_state.update(self.raw_input.take());
 
+        if let Some(viewport_output) = full_output.viewport_output.get(&ViewportId::ROOT) {
+            self.handle_viewport_output(viewport_output);
+        }
+
+        if let Some(mut renderer) = self.graphics_context.renderer() {
             if full_output.platform_output.requested_discard() {
                 self.request_repaint();
             } else {
@@ -280,6 +288,57 @@ impl<T: App> Runner<T> {
         }
     }
 
+    fn handle_viewport_output(&mut self, viewport_output: &ViewportOutput) {
+        for command in &viewport_output.commands {
+            match command {
+                ViewportCommand::Close => {
+                    self.close_requested = true;
+                }
+
+                ViewportCommand::CancelClose => {
+                    self.close_requested = false;
+                }
+
+                &ViewportCommand::Fullscreen(fullscreen) => {
+                    if fullscreen {
+                        self.android_app.set_window_flags(
+                            WindowManagerFlags::FULLSCREEN,
+                            WindowManagerFlags::empty(),
+                        );
+                    } else {
+                        self.android_app.set_window_flags(
+                            WindowManagerFlags::empty(),
+                            WindowManagerFlags::FULLSCREEN,
+                        );
+                    }
+                }
+
+                &ViewportCommand::MousePassthrough(passthrough) => {
+                    if passthrough {
+                        self.android_app.set_window_flags(
+                            WindowManagerFlags::NOT_FOCUSABLE,
+                            WindowManagerFlags::empty(),
+                        );
+                    } else {
+                        self.android_app.set_window_flags(
+                            WindowManagerFlags::empty(),
+                            WindowManagerFlags::NOT_FOCUSABLE,
+                        );
+                    }
+                }
+
+                ViewportCommand::RequestPaste => {
+                    if let Ok(text) = android_clipboard::get_text() {
+                        self.raw_input.events.push(Event::Paste(text));
+                        self.request_repaint();
+                    }
+                }
+
+                _ => {}
+            }
+        }
+    }
+
     fn pixels_per_point(&self) -> f32 {
         self.raw_input
             .viewport()
@@ -299,6 +358,7 @@ impl<T: App> Runner<T> {
         viewport_info.focused = Some(focused);
     }
 
+    /// Inspect configuration supplied to us from Android, and update our state to match.
     fn apply_current_config(&mut self) {
         let config = self.android_app.config();
 
@@ -317,8 +377,8 @@ impl<T: App> Runner<T> {
         // Calculate pixels per point based on screen density.
         viewport_info.native_pixels_per_point = config
             .density()
-            .map(|density| density as f32 / 160.0)
-            .map(|ppp| ppp.round());
+            .map(|density| density as f32 / BASE_DPI);
+            // .map(|ppp| ppp.round());
 
         let pixels_per_point = viewport_info.native_pixels_per_point.unwrap_or(1.0);
 
@@ -344,9 +404,9 @@ impl<T: App> Runner<T> {
             ));
         }
 
-        self.app_state
-            .context()
-            .style_mut(|style| style.spacing.window_margin = self.window_margin(pixels_per_point));
+        self.app_state.context().style_mut(|style| {
+            style.spacing.window_margin = self.window_margin(pixels_per_point);
+        });
     }
 
     fn window_margin(&self, pixels_per_point: f32) -> Margin {

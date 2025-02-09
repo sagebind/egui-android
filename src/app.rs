@@ -1,3 +1,4 @@
+use egui::{Context, Rect};
 use std::time::Duration;
 
 /// Core trait for implementing the root of an egui Android application.
@@ -15,11 +16,11 @@ pub trait App {
 
     /// Called each time the UI needs repainting, which may be many times per
     /// second.
-    fn update(&mut self, ctx: &egui::Context);
+    fn update(&mut self, ctx: &Context);
 
     /// Called when the rectangle in the window in which content should be
     /// placed has changed.
-    fn on_content_rect_changed(&mut self, _new_rect: egui::Rect) {
+    fn on_content_rect_changed(&mut self, _new_rect: Rect) {
         // By default, do nothing.
     }
 

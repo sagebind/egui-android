@@ -1,10 +1,6 @@
 #![doc(hidden)]
 
-use crate::{
-    logging,
-    runner::{ControlFlow, Runner},
-    App,
-};
+use crate::{logging, runner::Runner, App};
 
 pub use android_activity::AndroidApp;
 
@@ -12,16 +8,9 @@ pub use android_activity::AndroidApp;
 pub fn main<T: App>(android_app: AndroidApp) {
     logging::init();
 
-    log::info!("screen density: {:?}", android_app.config().density());
-    log::info!("content rect: {:?}", android_app.content_rect());
+    Runner::<T>::new(android_app).run_until_closed();
 
-    let mut runner = Runner::<T>::new(android_app);
-
-    loop {
-        if runner.run_once() == ControlFlow::Quit {
-            break;
-        }
-    }
+    log::debug!("app exited cleanly");
 }
 
 #[macro_export]

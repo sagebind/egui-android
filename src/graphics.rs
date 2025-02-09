@@ -234,7 +234,7 @@ pub(crate) struct Renderer<'c> {
     painter: &'c mut Painter,
 }
 
-impl<'c> Renderer<'c> {
+impl Renderer<'_> {
     pub(crate) fn handle_resize(&self) {
         self.surface.resize(
             self.gl_context,
