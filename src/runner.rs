@@ -1,14 +1,10 @@
 #![cfg(target_os = "android")]
 
 use crate::{
-    graphics::{canvas::Canvas, context::GraphicsContext},
-    ime::show_hide_keyboard,
-    input::InputHandler,
-    state::AppState,
-    App,
+    graphics::GraphicsContext, ime::show_hide_keyboard, input::InputHandler, state::AppState, App,
 };
 use android_activity::{AndroidApp, MainEvent, PollEvent};
-use egui::{pos2, vec2, Event, FullOutput, ImeEvent, Margin, Pos2, RawInput, Rect, Theme};
+use egui::{pos2, vec2, Event, FullOutput, Margin, Pos2, RawInput, Rect, Theme};
 use ndk::configuration::UiModeNight;
 use std::{
     mem::take,
@@ -101,14 +97,10 @@ impl<T: App> Runner<T> {
         self.app_state.context().request_repaint();
     }
 
-    fn initialize_canvas_if_needed(&mut self) {
+    fn attach_window_if_needed(&mut self) {
         if let Some(native_window) = self.android_app.native_window() {
-            self.graphics_context.set_window(native_window);
+            self.graphics_context.attach_window(native_window);
         };
-    }
-
-    fn destroy_canvas(&mut self) {
-        self.graphics_context.remove_window();
     }
 
     fn process_event(&mut self, event: PollEvent, control_flow: &mut ControlFlow) {
@@ -121,7 +113,7 @@ impl<T: App> Runner<T> {
             }
             PollEvent::Main(main_event) => match main_event {
                 MainEvent::Destroy => {
-                    self.destroy_canvas();
+                    self.graphics_context.detach_window();
                     *control_flow = ControlFlow::Quit;
                 }
 
@@ -129,18 +121,18 @@ impl<T: App> Runner<T> {
                     // TODO: Need to reset textures
                     // self.app_state = AppState::new(T::create());
                     self.apply_current_config();
-                    self.initialize_canvas_if_needed();
+                    self.attach_window_if_needed();
                     self.request_repaint();
                 }
 
                 MainEvent::TerminateWindow { .. } | MainEvent::Stop => {
-                    self.destroy_canvas();
+                    self.graphics_context.detach_window();
                 }
 
                 MainEvent::WindowResized { .. } => {
                     self.apply_current_config();
-                    if let Some(canvas) = self.graphics_context.canvas_mut() {
-                        canvas.handle_resize();
+                    if let Some(renderer) = self.graphics_context.renderer() {
+                        renderer.handle_resize();
                     }
                     self.request_repaint();
                 }
@@ -242,7 +234,7 @@ impl<T: App> Runner<T> {
     /// Do a full app update. Input events will be passed into egui, the user's
     /// update routine will be called, and the UI will be redrawn.
     fn repaint(&mut self) {
-        if let Some(canvas) = self.graphics_context.canvas_mut() {
+        if let Some(mut renderer) = self.graphics_context.renderer() {
             let mut full_output = self.app_state.update(self.raw_input.take());
 
             if full_output.platform_output.requested_discard() {
@@ -253,7 +245,7 @@ impl<T: App> Runner<T> {
                     .context()
                     .tessellate(take(&mut full_output.shapes), full_output.pixels_per_point);
 
-                canvas.repaint(&mut full_output, &clipped_primitives);
+                renderer.repaint(&mut full_output, &clipped_primitives);
             }
 
             self.handle_output_events(&full_output);
@@ -330,8 +322,8 @@ impl<T: App> Runner<T> {
 
         let pixels_per_point = viewport_info.native_pixels_per_point.unwrap_or(1.0);
 
-        if let Some(canvas) = self.graphics_context.canvas_mut() {
-            let [width, height] = canvas.window_size();
+        if let Some(renderer) = self.graphics_context.renderer() {
+            let [width, height] = renderer.window_size();
             let width = width as f32 / pixels_per_point;
             let height = height as f32 / pixels_per_point;
 
