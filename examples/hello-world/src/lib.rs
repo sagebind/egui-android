@@ -40,6 +40,8 @@ impl App for MyApp {
                 self.age += 1;
             }
 
+            ui.hyperlink("https://www.google.com");
+
             ui.label(format!("Hello '{}', age {}", self.name, self.age));
 
             ui.label(format!("Last update timestamp: {}", time));

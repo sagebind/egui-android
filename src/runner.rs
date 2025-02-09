@@ -1,10 +1,12 @@
 use crate::{
     graphics::GraphicsContext, ime::show_hide_keyboard, input::InputHandler, state::AppState, App,
 };
-use android_activity::{AndroidApp, MainEvent, PollEvent, WindowManagerFlags};
+use android_activity::{
+    input::TextInputState, AndroidApp, MainEvent, PollEvent, WindowManagerFlags,
+};
 use egui::{
-    pos2, vec2, Event, FullOutput, Margin, Pos2, RawInput, Rect, Theme, ViewportCommand,
-    ViewportId, ViewportOutput,
+    pos2, vec2, Event, FullOutput, ImeEvent, Margin, OpenUrl, OutputCommand, Pos2, RawInput, Rect,
+    Theme, ViewportCommand, ViewportId, ViewportOutput,
 };
 use ndk::configuration::UiModeNight;
 use std::{
@@ -194,7 +196,7 @@ impl<T: App> Runner<T> {
                     }
                 }
 
-                main_event => log::trace!("unknown main event: {main_event:?}"),
+                main_event => log::warn!("unknown main event: {main_event:?}"),
             },
             _ => {}
         }
@@ -207,10 +209,7 @@ impl<T: App> Runner<T> {
             Ok(mut iter) => loop {
                 let read_input = iter.next(|event| {
                     self.input_handler
-                        .process(event, pixels_per_point, |event| {
-                            self.raw_input.events.push(event);
-                            self.app_state.update_clock();
-                        })
+                        .process(event, pixels_per_point, &mut self.raw_input)
                 });
 
                 if !read_input {
@@ -256,11 +255,11 @@ impl<T: App> Runner<T> {
                 renderer.repaint(&mut full_output, &clipped_primitives);
             }
 
-            self.handle_output_events(&full_output);
+            self.handle_output_events(full_output);
         }
     }
 
-    fn handle_output_events(&mut self, full_output: &FullOutput) {
+    fn handle_output_events(&mut self, mut full_output: FullOutput) {
         // Check if egui wants to show or hide the keyboard, based on the
         // last UI update.
 
@@ -285,6 +284,36 @@ impl<T: App> Runner<T> {
                 self.request_repaint();
             }
             _ => {}
+        }
+
+        // if let Some(ime) = full_output.platform_output.ime.as_ref() {
+        //     self.android_app.set_text_input_state(TextInputState {
+        //         text: "".into(),
+        //         selection: ime.selection,
+        //         compose_region: None,
+        //     });
+        // }
+
+        for command in full_output.platform_output.commands {
+            self.handle_output_command(command);
+        }
+    }
+
+    fn handle_output_command(&mut self, command: OutputCommand) {
+        match command {
+            OutputCommand::CopyText(text) => {
+                if let Err(err) = android_clipboard::set_text(text) {
+                    log::error!("failed to copy text to clipboard: {err:?}");
+                }
+            }
+
+            OutputCommand::OpenUrl(OpenUrl { url, .. }) => {
+                if let Err(e) = webbrowser::open(&url) {
+                    log::error!("failed to open URL: {e}");
+                }
+            }
+
+            command => log::warn!("unsupported output command: {command:?}"),
         }
     }
 
@@ -334,7 +363,7 @@ impl<T: App> Runner<T> {
                     }
                 }
 
-                _ => {}
+                _ => log::warn!("unsupported viewport command: {command:?}"),
             }
         }
     }
@@ -375,10 +404,9 @@ impl<T: App> Runner<T> {
             .unwrap();
 
         // Calculate pixels per point based on screen density.
-        viewport_info.native_pixels_per_point = config
-            .density()
-            .map(|density| density as f32 / BASE_DPI);
-            // .map(|ppp| ppp.round());
+        viewport_info.native_pixels_per_point =
+            config.density().map(|density| density as f32 / BASE_DPI);
+        // .map(|ppp| ppp.round());
 
         let pixels_per_point = viewport_info.native_pixels_per_point.unwrap_or(1.0);
 

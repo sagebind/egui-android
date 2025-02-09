@@ -6,8 +6,8 @@ use android_activity::{
     AndroidApp, InputStatus,
 };
 use egui::{
-    pos2, vec2, Event, Modifiers, MouseWheelUnit, PointerButton, Pos2, TouchDeviceId, TouchId,
-    TouchPhase,
+    pos2, vec2, Event, Modifiers, MouseWheelUnit, PointerButton, Pos2, RawInput, TouchDeviceId,
+    TouchId, TouchPhase, ViewportEvent,
 };
 
 /// Stateful object that processes input events from Android, and translates
@@ -37,7 +37,7 @@ impl InputHandler {
         &mut self,
         android_event: &InputEvent,
         pixels_per_point: f32,
-        mut receiver: impl FnMut(Event),
+        receiver: &mut RawInput,
     ) -> InputStatus {
         match android_event {
             InputEvent::KeyEvent(key_event) => self.process_key_event(key_event, receiver),
@@ -46,7 +46,7 @@ impl InputHandler {
                 match motion_event.action() {
                     MotionAction::Scroll => {
                         for pointer in motion_event.pointers() {
-                            receiver(Event::MouseWheel {
+                            receiver.events.push(Event::MouseWheel {
                                 delta: vec2(
                                     pointer.axis_value(Axis::Hscroll),
                                     pointer.axis_value(Axis::Vscroll),
@@ -61,7 +61,7 @@ impl InputHandler {
 
                     MotionAction::Down | MotionAction::PointerDown => {
                         for pointer in motion_event.pointers() {
-                            receiver(create_touch_event(
+                            receiver.events.push(create_touch_event(
                                 motion_event,
                                 &pointer,
                                 TouchPhase::Start,
@@ -70,7 +70,7 @@ impl InputHandler {
                         }
 
                         if motion_event.pointer_count() == 1 {
-                            receiver(create_click_event(
+                            receiver.events.push(create_click_event(
                                 motion_event,
                                 &motion_event.pointers().next().unwrap(),
                                 true,
@@ -83,7 +83,7 @@ impl InputHandler {
 
                     MotionAction::Up | MotionAction::PointerUp => {
                         for pointer in motion_event.pointers() {
-                            receiver(create_touch_event(
+                            receiver.events.push(create_touch_event(
                                 motion_event,
                                 &pointer,
                                 TouchPhase::End,
@@ -92,7 +92,7 @@ impl InputHandler {
                         }
 
                         if motion_event.pointer_count() == 1 {
-                            receiver(create_click_event(
+                            receiver.events.push(create_click_event(
                                 motion_event,
                                 &motion_event.pointers().next().unwrap(),
                                 false,
@@ -101,7 +101,7 @@ impl InputHandler {
                         }
 
                         if motion_event.pointer_count() <= 1 {
-                            receiver(Event::PointerGone);
+                            receiver.events.push(Event::PointerGone);
                         }
 
                         InputStatus::Handled
@@ -109,7 +109,7 @@ impl InputHandler {
 
                     MotionAction::Move => {
                         for pointer in motion_event.pointers() {
-                            receiver(create_touch_event(
+                            receiver.events.push(create_touch_event(
                                 motion_event,
                                 &pointer,
                                 TouchPhase::Move,
@@ -119,7 +119,9 @@ impl InputHandler {
 
                         if motion_event.pointer_count() == 1 {
                             let pointer = motion_event.pointers().next().unwrap();
-                            receiver(Event::PointerMoved(pointer_pos(&pointer, pixels_per_point)));
+                            receiver
+                                .events
+                                .push(Event::PointerMoved(pointer_pos(&pointer, pixels_per_point)));
                         }
 
                         InputStatus::Handled
@@ -127,7 +129,7 @@ impl InputHandler {
 
                     MotionAction::Cancel => {
                         for pointer in motion_event.pointers() {
-                            receiver(create_touch_event(
+                            receiver.events.push(create_touch_event(
                                 motion_event,
                                 &pointer,
                                 TouchPhase::Cancel,
@@ -139,7 +141,7 @@ impl InputHandler {
                     }
 
                     MotionAction::Outside => {
-                        receiver(Event::PointerGone);
+                        receiver.events.push(Event::PointerGone);
                         InputStatus::Handled
                     }
 
@@ -147,7 +149,7 @@ impl InputHandler {
                     MotionAction::HoverMove => {
                         for pointer in motion_event.pointers() {
                             if pointer.tool_type() == ToolType::Mouse {
-                                receiver(Event::MouseMoved(
+                                receiver.events.push(Event::MouseMoved(
                                     vec2(
                                         pointer.axis_value(Axis::Hscroll),
                                         pointer.axis_value(Axis::Vscroll),
@@ -179,11 +181,21 @@ impl InputHandler {
         }
     }
 
-    fn process_key_event(
-        &mut self,
-        key_event: &KeyEvent,
-        mut receiver: impl FnMut(Event),
-    ) -> InputStatus {
+    fn process_key_event(&mut self, key_event: &KeyEvent, receiver: &mut RawInput) -> InputStatus {
+        // Special handling for back button.
+        if key_event.key_code() == Keycode::Back {
+            if key_event.action() == KeyAction::Up {
+                log::info!("back button pressed");
+                receiver
+                    .viewports
+                    .get_mut(&receiver.viewport_id)
+                    .unwrap()
+                    .events
+                    .push(ViewportEvent::Close);
+            }
+            return InputStatus::Handled;
+        }
+
         let device_id = key_event.device_id();
 
         let key_map = match self.app.device_key_character_map(device_id) {
@@ -217,13 +229,13 @@ impl InputHandler {
                             .ok()
                             .flatten()
                         {
-                            receiver(Event::Text(c.into()));
+                            receiver.events.push(Event::Text(c.into()));
                             InputStatus::Handled
                         } else {
                             InputStatus::Unhandled
                         }
                     } else {
-                        receiver(Event::Text(unicode.into()));
+                        receiver.events.push(Event::Text(unicode.into()));
                         InputStatus::Handled
                     }
                 } else {
@@ -236,16 +248,16 @@ impl InputHandler {
             }
             KeyMapChar::None => match key_event.key_code() {
                 Keycode::Copy => {
-                    receiver(Event::Copy);
+                    receiver.events.push(Event::Copy);
                     InputStatus::Handled
                 }
                 Keycode::Cut => {
-                    receiver(Event::Cut);
+                    receiver.events.push(Event::Cut);
                     InputStatus::Handled
                 }
                 keycode => {
                     if let Some(key) = crate::keycodes::to_physical_key(keycode) {
-                        receiver(Event::Key {
+                        receiver.events.push(Event::Key {
                             key,
                             physical_key: None,
                             pressed: key_event.action() == KeyAction::Down,
