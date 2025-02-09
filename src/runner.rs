@@ -20,7 +20,6 @@ pub(crate) struct Runner<T: App> {
     app_state: AppState<T>,
     android_app: AndroidApp,
     graphics_context: GraphicsContext,
-    canvas: Option<Canvas>,
     raw_input: RawInput,
     input_handler: InputHandler,
     repaint_info: Arc<Mutex<RepaintInfo>>,
@@ -66,7 +65,6 @@ impl<T: App> Runner<T> {
             app_state,
             android_app: android_app.clone(),
             graphics_context: GraphicsContext::new(),
-            canvas: None,
             raw_input: RawInput::default(),
             input_handler: InputHandler::new(android_app),
             repaint_info,
@@ -104,18 +102,13 @@ impl<T: App> Runner<T> {
     }
 
     fn initialize_canvas_if_needed(&mut self) {
-        if let Some(window) = self.android_app.native_window() {
-            if self.canvas.is_none() {
-                log::info!("creating canvas");
-                self.canvas = Some(self.graphics_context.create_surface(window));
-            }
+        if let Some(native_window) = self.android_app.native_window() {
+            self.graphics_context.set_window(native_window);
         };
     }
 
     fn destroy_canvas(&mut self) {
-        if self.canvas.take().is_some() {
-            log::info!("destroying canvas");
-        }
+        self.graphics_context.remove_window();
     }
 
     fn process_event(&mut self, event: PollEvent, control_flow: &mut ControlFlow) {
@@ -133,6 +126,8 @@ impl<T: App> Runner<T> {
                 }
 
                 MainEvent::InitWindow { .. } => {
+                    // TODO: Need to reset textures
+                    // self.app_state = AppState::new(T::create());
                     self.apply_current_config();
                     self.initialize_canvas_if_needed();
                     self.request_repaint();
@@ -144,7 +139,7 @@ impl<T: App> Runner<T> {
 
                 MainEvent::WindowResized { .. } => {
                     self.apply_current_config();
-                    if let Some(canvas) = self.canvas.as_mut() {
+                    if let Some(canvas) = self.graphics_context.canvas_mut() {
                         canvas.handle_resize();
                     }
                     self.request_repaint();
@@ -247,7 +242,7 @@ impl<T: App> Runner<T> {
     /// Do a full app update. Input events will be passed into egui, the user's
     /// update routine will be called, and the UI will be redrawn.
     fn repaint(&mut self) {
-        if let Some(canvas) = self.canvas.as_mut() {
+        if let Some(canvas) = self.graphics_context.canvas_mut() {
             let mut full_output = self.app_state.update(self.raw_input.take());
 
             if full_output.platform_output.requested_discard() {
@@ -335,7 +330,7 @@ impl<T: App> Runner<T> {
 
         let pixels_per_point = viewport_info.native_pixels_per_point.unwrap_or(1.0);
 
-        if let Some(canvas) = self.canvas.as_ref() {
+        if let Some(canvas) = self.graphics_context.canvas_mut() {
             let [width, height] = canvas.window_size();
             let width = width as f32 / pixels_per_point;
             let height = height as f32 / pixels_per_point;

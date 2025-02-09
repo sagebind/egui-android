@@ -1,51 +1,28 @@
 use egui::FullOutput;
-use egui_glow::{glow, Painter};
+use egui_glow::Painter;
 use glutin::{
-    api::egl::{
-        context::{NotCurrentContext, PossiblyCurrentContext},
-        surface::Surface,
-    },
-    context::{NotCurrentGlContext, PossiblyCurrentGlContext},
+    api::egl::{context::PossiblyCurrentContext, surface::Surface},
     surface::{GlSurface, WindowSurface},
 };
 use ndk::native_window::NativeWindow;
-use std::sync::Arc;
 
 /// When a window exists, this provides the ability to render to that window.
 pub(crate) struct Canvas {
-    native_window: NativeWindow,
-    surface: Surface<WindowSurface>,
-    gl_context_current: Option<PossiblyCurrentContext>,
-    gl_context_not_current: Option<NotCurrentContext>,
-    painter: Painter,
+    pub(crate) native_window: NativeWindow,
+    pub(crate) surface: Surface<WindowSurface>,
+    pub(crate) gl_context: Option<PossiblyCurrentContext>,
+    pub(crate) painter: Painter,
 }
 
 impl Canvas {
-    pub(crate) fn new(
-        native_window: NativeWindow,
-        surface: Surface<WindowSurface>,
-        gl_context: PossiblyCurrentContext,
-        glow_context: glow::Context,
-    ) -> Self {
-        Canvas {
-            native_window,
-            surface,
-            gl_context_current: Some(gl_context),
-            gl_context_not_current: None,
-            painter: Painter::new(Arc::new(glow_context), "", None, false).unwrap(),
-        }
-    }
-
     pub(crate) fn handle_resize(&mut self) {
         let [width, height] = self.window_size();
 
-        if let Some(context) = self.gl_context_current.as_mut() {
-            self.surface.resize(
-                context,
-                width.try_into().unwrap(),
-                height.try_into().unwrap(),
-            );
-        }
+        self.surface.resize(
+            self.gl_context.as_ref().unwrap(),
+            width.try_into().unwrap(),
+            height.try_into().unwrap(),
+        );
     }
 
     pub(crate) fn repaint(
@@ -77,28 +54,13 @@ impl Canvas {
         ]
     }
 
-    fn make_current(&mut self) {
-        if let Some(context) = self.gl_context_not_current.take() {
-            self.gl_context_current = Some(unsafe { context.make_current(&self.surface) }.unwrap());
-        }
-    }
-
-    fn make_not_current(&mut self) {
-        if let Some(context) = self.gl_context_current.take() {
-            self.gl_context_not_current = Some(context.make_not_current().unwrap());
-        }
-    }
-
     fn swap_buffers(&mut self) {
-        if let Some(context) = self.gl_context_current.as_mut() {
-            self.surface.swap_buffers(context).unwrap();
-        }
+        self.surface
+            .swap_buffers(self.gl_context.as_ref().unwrap())
+            .unwrap();
     }
-}
 
-impl Drop for Canvas {
-    fn drop(&mut self) {
-        self.painter.destroy();
-        self.make_not_current();
+    pub(crate) fn into_context(mut self) -> Painter {
+        self.painter
     }
 }
