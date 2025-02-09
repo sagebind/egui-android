@@ -76,12 +76,7 @@ impl GraphicsContext {
             })
         };
 
-        Canvas::new(
-            window,
-            surface,
-            gl_context,
-            glow_context,
-        )
+        Canvas::new(window, surface, gl_context, glow_context)
     }
 }
 

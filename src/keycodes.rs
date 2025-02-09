@@ -64,6 +64,7 @@ pub(crate) fn to_physical_key(keycode: Keycode) -> Option<Key> {
             DpadLeft => ArrowLeft,
             DpadRight => ArrowRight,
             Del => Backspace,
+            ForwardDel => Delete,
         })
     });
 

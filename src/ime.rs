@@ -42,8 +42,7 @@ pub(crate) fn show_hide_keyboard_alt(app: &AndroidApp, show: bool, implicit: boo
             // if implicit {
             //     (ndk_sys::ANATIVEACTIVITY_SHOW_SOFT_INPUT_IMPLICIT as i32).into()
             // } else {
-                0i32.into()
-            // },
+            0i32.into(), // },
         ],
     )
     .unwrap();

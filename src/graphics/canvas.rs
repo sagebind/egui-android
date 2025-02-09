@@ -58,7 +58,7 @@ impl Canvas {
             self.surface.height().unwrap(),
         ];
 
-        egui_glow::painter::clear(self.painter.gl(), screen_size, [0.0, 0.0, 0.0, 0.0]);
+        self.painter.clear(screen_size, [0.0, 0.0, 0.0, 0.0]);
 
         self.painter.paint_and_update_textures(
             screen_size,

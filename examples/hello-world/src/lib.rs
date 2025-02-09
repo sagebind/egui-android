@@ -1,5 +1,3 @@
-use core::time;
-
 use egui_android::{egui, App};
 
 struct MyApp {

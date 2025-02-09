@@ -103,14 +103,19 @@ impl<T: App> Runner<T> {
         self.app_state.context().request_repaint();
     }
 
-    fn initialize_canvas(&mut self) {
+    fn initialize_canvas_if_needed(&mut self) {
         if let Some(window) = self.android_app.native_window() {
-            self.canvas = Some(self.graphics_context.create_surface(window));
+            if self.canvas.is_none() {
+                log::info!("creating canvas");
+                self.canvas = Some(self.graphics_context.create_surface(window));
+            }
         };
     }
 
     fn destroy_canvas(&mut self) {
-        self.canvas = None;
+        if self.canvas.take().is_some() {
+            log::info!("destroying canvas");
+        }
     }
 
     fn process_event(&mut self, event: PollEvent, control_flow: &mut ControlFlow) {
@@ -128,14 +133,12 @@ impl<T: App> Runner<T> {
                 }
 
                 MainEvent::InitWindow { .. } => {
-                    log::info!("init window");
                     self.apply_current_config();
-                    self.initialize_canvas();
+                    self.initialize_canvas_if_needed();
                     self.request_repaint();
                 }
 
-                MainEvent::TerminateWindow { .. } => {
-                    log::info!("terminate window");
+                MainEvent::TerminateWindow { .. } | MainEvent::Stop => {
                     self.destroy_canvas();
                 }
 
@@ -215,6 +218,7 @@ impl<T: App> Runner<T> {
                     self.input_handler
                         .process(event, pixels_per_point, |event| {
                             self.raw_input.events.push(event);
+                            self.app_state.update_clock();
                         })
                 });
 
@@ -246,12 +250,16 @@ impl<T: App> Runner<T> {
         if let Some(canvas) = self.canvas.as_mut() {
             let mut full_output = self.app_state.update(self.raw_input.take());
 
-            let clipped_primitives = self
-                .app_state
-                .context()
-                .tessellate(take(&mut full_output.shapes), full_output.pixels_per_point);
+            if full_output.platform_output.requested_discard() {
+                self.request_repaint();
+            } else {
+                let clipped_primitives = self
+                    .app_state
+                    .context()
+                    .tessellate(take(&mut full_output.shapes), full_output.pixels_per_point);
 
-            canvas.repaint(&mut full_output, &clipped_primitives);
+                canvas.repaint(&mut full_output, &clipped_primitives);
+            }
 
             self.handle_output_events(&full_output);
         }
@@ -270,7 +278,7 @@ impl<T: App> Runner<T> {
                 // crate::ime::show_hide_keyboard_alt(&self.android_app, true, true);
                 show_hide_keyboard(&self.android_app, true);
                 self.keyboard_visible = true;
-                self.raw_input.events.push(Event::Ime(ImeEvent::Enabled));
+                // self.raw_input.events.push(Event::Ime(ImeEvent::Enabled));
                 self.request_repaint();
             }
             (false, true) => {
@@ -278,7 +286,7 @@ impl<T: App> Runner<T> {
                 // show_hide_keyboard(&self.android_app, false);
                 self.android_app.hide_soft_input(false);
                 self.keyboard_visible = false;
-                self.raw_input.events.push(Event::Ime(ImeEvent::Disabled));
+                // self.raw_input.events.push(Event::Ime(ImeEvent::Disabled));
                 self.request_repaint();
             }
             _ => {}

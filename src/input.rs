@@ -14,11 +14,15 @@ use egui::{
 /// them into egui input events.
 pub(crate) struct InputHandler {
     app: AndroidApp,
+    combining_accent: Option<char>,
 }
 
 impl InputHandler {
     pub fn new(app: AndroidApp) -> Self {
-        Self { app }
+        Self {
+            app,
+            combining_accent: None,
+        }
     }
 
     /// Process an input event.
@@ -36,16 +40,7 @@ impl InputHandler {
         mut receiver: impl FnMut(Event),
     ) -> InputStatus {
         match android_event {
-            InputEvent::KeyEvent(key_event) => {
-                if let Some(event) = self.to_egui_key_event(key_event) {
-                    log::info!("key event created: {event:?}");
-                    receiver(event);
-                    InputStatus::Handled
-                } else {
-                    log::warn!("key event not handled: {key_event:?}");
-                    InputStatus::Unhandled
-                }
-            }
+            InputEvent::KeyEvent(key_event) => self.process_key_event(key_event, receiver),
 
             InputEvent::MotionEvent(motion_event) => {
                 match motion_event.action() {
@@ -184,60 +179,87 @@ impl InputHandler {
         }
     }
 
-    fn to_egui_key_event(&self, key_event: &KeyEvent) -> Option<Event> {
+    fn process_key_event(
+        &mut self,
+        key_event: &KeyEvent,
+        mut receiver: impl FnMut(Event),
+    ) -> InputStatus {
         let device_id = key_event.device_id();
 
         let key_map = match self.app.device_key_character_map(device_id) {
             Ok(key_map) => key_map,
             Err(err) => {
                 log::warn!("failed to look up `KeyCharacterMap` for device {device_id}: {err:?}");
-                return None;
+                return InputStatus::Unhandled;
             }
         };
 
-        match key_map.get(key_event.key_code(), key_event.meta_state()) {
-            Ok(KeyMapChar::Unicode(unicode)) => {
-                if key_event.action() == KeyAction::Down {
-                    Some(Event::Text(unicode.into()))
-                } else {
-                    None
-                }
-            }
-            Ok(KeyMapChar::CombiningAccent(accent)) => {
-                // if key_event.action() == KeyAction::Down {
-                //     *combining_accent = Some(accent);
-                // }
-                // Some(KeyMapChar::CombiningAccent(accent))
-                None
-            }
-            Ok(KeyMapChar::None) => {
-                // Leave any combining_accent state in tact (seems to match how other
-                // Android apps work)
-                None
-            }
+        let cma = match key_map.get(key_event.key_code(), key_event.meta_state()) {
+            Ok(c) => c,
             Err(err) => {
                 log::warn!("KeyEvent: Failed to get key map character: {err:?}");
-                // *combining_accent = None;
-                None
+                KeyMapChar::None
             }
+        };
+
+        match cma {
+            KeyMapChar::Unicode(unicode) => {
+                if key_event.action() == KeyAction::Down {
+                    if let Some(combining_accent) = self.combining_accent.take() {
+                        if let Some(c) = key_map
+                            .get_dead_char(combining_accent, unicode)
+                            .inspect_err(|e| {
+                                log::warn!(
+                                    "KeyEvent: Failed to combine 'dead key' accent '{combining_accent}' with \
+                                    '{unicode}': {e:?}"
+                                )
+                            })
+                            .ok()
+                            .flatten()
+                        {
+                            receiver(Event::Text(c.into()));
+                            InputStatus::Handled
+                        } else {
+                            InputStatus::Unhandled
+                        }
+                    } else {
+                        receiver(Event::Text(unicode.into()));
+                        InputStatus::Handled
+                    }
+                } else {
+                    InputStatus::Handled
+                }
+            }
+            KeyMapChar::CombiningAccent(combining_accent) => {
+                self.combining_accent = Some(combining_accent);
+                InputStatus::Handled
+            }
+            KeyMapChar::None => match key_event.key_code() {
+                Keycode::Copy => {
+                    receiver(Event::Copy);
+                    InputStatus::Handled
+                }
+                Keycode::Cut => {
+                    receiver(Event::Cut);
+                    InputStatus::Handled
+                }
+                keycode => {
+                    if let Some(key) = crate::keycodes::to_physical_key(keycode) {
+                        receiver(Event::Key {
+                            key,
+                            physical_key: None,
+                            pressed: key_event.action() == KeyAction::Down,
+                            repeat: key_event.repeat_count() > 0,
+                            modifiers: modifiers_from_meta_state(key_event.meta_state()),
+                        });
+                        InputStatus::Handled
+                    } else {
+                        log::warn!("Unknown key code: {:?}", key_event.key_code());
+                        InputStatus::Unhandled
+                    }
+                }
+            },
         }
-
-        // let physical_key = crate::keycodes::to_physical_key(key_event.key_code());
-
-        // if physical_key.is_none() {
-        //     log::warn!("Unknown key code: {:?}", key_event.key_code());
-        //     return None;
-        // }
-
-        // let pressed = key_event.action() == KeyAction::Down;
-
-        // Some(Event::Key {
-        //     key: physical_key.unwrap(),
-        //     physical_key: None,
-        //     pressed,
-        //     repeat: key_event.repeat_count() > 0,
-        //     modifiers: modifiers_from_meta_state(key_event.meta_state()),
-        // })
     }
 }
 
