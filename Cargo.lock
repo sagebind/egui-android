@@ -322,6 +322,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-android-demo"
+version = "0.0.0"
+dependencies = [
+ "egui-android",
+ "log",
+]
+
+[[package]]
 name = "egui_glow"
 version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -466,14 +474,6 @@ name = "hashbrown"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
-
-[[package]]
-name = "hello-world"
-version = "0.0.0"
-dependencies = [
- "egui-android",
- "log",
-]
 
 [[package]]
 name = "home"

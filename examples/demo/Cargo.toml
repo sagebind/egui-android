@@ -1,5 +1,5 @@
 [package]
-name = "hello-world"
+name = "egui-android-demo"
 version = "0.0.0"
 edition = "2021"
 publish = false
@@ -14,7 +14,7 @@ log = "0.4"
 path = "../../"
 
 [package.metadata.android]
-package = "com.foo.bar"
+package = "com.stephencoakley"
 build_targets = ["armv7-linux-androideabi", "i686-linux-android", "x86_64-linux-android"]
 
 [package.metadata.android.sdk]

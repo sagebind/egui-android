@@ -256,7 +256,7 @@ impl InputHandler {
                     InputStatus::Handled
                 }
                 keycode => {
-                    if let Some(key) = crate::keycodes::to_physical_key(keycode) {
+                    if let Some(key) = super::keycodes::to_physical_key(keycode) {
                         receiver.events.push(Event::Key {
                             key,
                             physical_key: None,

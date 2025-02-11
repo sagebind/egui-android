@@ -1,4 +1,4 @@
-pub(crate) fn init() {
+pub(crate) fn init(package_name: String) {
     #[cfg(feature = "logger")]
     {
         use std::sync::Once;
@@ -9,7 +9,7 @@ pub(crate) fn init() {
             android_logger::init_once(
                 android_logger::Config::default()
                     .with_max_level(log::LevelFilter::Debug)
-                    .with_tag("rust"),
+                    .with_tag(package_name),
             );
 
             log_panics::init();

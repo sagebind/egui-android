@@ -1,12 +1,14 @@
-use crate::{
-    graphics::GraphicsContext, ime::show_hide_keyboard, input::InputHandler, state::AppState, App,
+use crate::App;
+use super::{
+    graphics::GraphicsContext, ime::show_hide_keyboard, input::InputHandler, state::AppState,
 };
 use android_activity::{
-    input::TextInputState, AndroidApp, MainEvent, PollEvent, WindowManagerFlags,
+    input::{TextInputState, TextSpan},
+    AndroidApp, MainEvent, PollEvent, WindowManagerFlags,
 };
 use egui::{
-    pos2, vec2, Event, FullOutput, ImeEvent, Margin, OpenUrl, OutputCommand, Pos2, RawInput, Rect,
-    Theme, ViewportCommand, ViewportId, ViewportOutput,
+    output::OutputEvent, pos2, vec2, Event, FullOutput, Margin, OpenUrl, OutputCommand,
+    Pos2, RawInput, Rect, Theme, ViewportCommand, ViewportId, ViewportOutput, WidgetType,
 };
 use ndk::configuration::UiModeNight;
 use std::{
@@ -269,7 +271,6 @@ impl<T: App> Runner<T> {
         ) {
             (true, false) => {
                 log::info!("show keyboard requested");
-                // crate::ime::show_hide_keyboard_alt(&self.android_app, true, true);
                 show_hide_keyboard(&self.android_app, true);
                 self.keyboard_visible = true;
                 // self.raw_input.events.push(Event::Ime(ImeEvent::Enabled));
@@ -293,6 +294,54 @@ impl<T: App> Runner<T> {
         //         compose_region: None,
         //     });
         // }
+
+        for event in full_output.platform_output.events {
+            log::info!("output event: {event:?}");
+
+            match event {
+                OutputEvent::Clicked(info) => {
+                    if info.typ == WidgetType::TextEdit {
+                        self.android_app.set_text_input_state(TextInputState {
+                            text: info.current_text_value.unwrap_or_default(),
+                            selection: TextSpan { start: 0, end: 0 },
+                            compose_region: None,
+                        });
+                    } else {
+                        self.android_app.set_text_input_state(TextInputState {
+                            text: Default::default(),
+                            selection: TextSpan { start: 0, end: 0 },
+                            compose_region: None,
+                        });
+                    }
+                }
+
+                OutputEvent::TextSelectionChanged(info) => {
+                    self.android_app.set_text_input_state(TextInputState {
+                        text: info.current_text_value.unwrap_or_default(),
+                        selection: info
+                            .text_selection
+                            .map(|s| TextSpan {
+                                start: *s.start(),
+                                end: *s.end(),
+                            })
+                            .unwrap_or(TextSpan { start: 0, end: 0 }),
+                        compose_region: None,
+                    });
+                }
+
+                OutputEvent::ValueChanged(info) => {
+                    if info.typ == WidgetType::TextEdit {
+                        self.android_app.set_text_input_state(TextInputState {
+                            text: info.current_text_value.unwrap_or_default(),
+                            selection: TextSpan { start: 0, end: 0 },
+                            compose_region: None,
+                        });
+                    }
+                }
+
+                event => log::warn!("unsupported output event: {event:?}"),
+            }
+        }
 
         for command in full_output.platform_output.commands {
             self.handle_output_command(command);
