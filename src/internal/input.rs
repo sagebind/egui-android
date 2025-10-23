@@ -39,10 +39,13 @@ impl InputHandler {
         pixels_per_point: f32,
         receiver: &mut RawInput,
     ) -> InputStatus {
+        log::info!("processing input event: {:?}", android_event);
+
         match android_event {
             InputEvent::KeyEvent(key_event) => self.process_key_event(key_event, receiver),
 
             InputEvent::MotionEvent(motion_event) => {
+                log::info!("processing motion event: {:?}", motion_event.action());
                 match motion_event.action() {
                     MotionAction::Scroll => {
                         for pointer in motion_event.pointers() {

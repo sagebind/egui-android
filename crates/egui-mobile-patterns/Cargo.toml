@@ -6,7 +6,7 @@ authors = ["Stephen M. Coakley <me@stephencoakley.com>"]
 license = "MIT"
 
 [dependencies]
-egui = "0.31"
+egui.workspace = true
 
 [dependencies.serde]
 version = "1.0"

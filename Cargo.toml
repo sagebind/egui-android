@@ -13,7 +13,7 @@ test = ["ndk/test"]
 [dependencies]
 android_clipboard = "0.1"
 bincode = "1.3"
-egui_glow = "0.31"
+egui_glow.workspace = true
 jni = "0.21"
 log = "0.4"
 ndk = "0.9"
@@ -21,7 +21,7 @@ raw-window-handle = "0.6"
 webbrowser = "1.0"
 
 [dependencies.egui]
-version = "0.31"
+workspace = true
 features = ["persistence"]
 
 [dependencies.glutin]
@@ -51,5 +51,8 @@ panic = "abort"
 resolver = "2"
 members = [
     "crates/*",
-    "examples/*",
 ]
+
+[workspace.dependencies]
+egui = "0.33"
+egui_glow = "0.33"

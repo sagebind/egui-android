@@ -1,0 +1,24 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v26
+      - uses: cachix/cachix-action@v14
+        with:
+          name: devenv
+      - name: Install devenv.sh
+        run: nix profile install nixpkgs#devenv
+
+      - name: Build demo app
+        run: devenv tasks run demo:build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: egui-android-demo.apk
+          path: target/debug/apk/egui-android-demo.apk
