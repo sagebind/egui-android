@@ -13,7 +13,7 @@ egui-android.path = "../../"
 egui-mobile-patterns.path = "../../crates/egui-mobile-patterns"
 
 [package.metadata.android]
-package = "com.stephencoakley"
+package = "com.stephencoakley.egui_android_demo"
 build_targets = ["armv7-linux-androideabi", "i686-linux-android", "x86_64-linux-android"]
 
 [package.metadata.android.sdk]
