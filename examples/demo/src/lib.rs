@@ -1,4 +1,8 @@
-use egui_android::{egui::{self, ViewportCommand}, App};
+use egui_android::{
+    egui::{self, ViewportCommand},
+    App,
+};
+use egui_mobile_patterns::layout::navigation::{NavigationTabBuilder, NavigationWrapper};
 
 struct MyApp {
     name: String,
@@ -22,50 +26,53 @@ impl App for MyApp {
     fn update(&mut self, ctx: &egui::Context) {
         let time = ctx.input(|input| input.time);
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add_space(32.0);
+        NavigationWrapper::new()
+            .tab(NavigationTabBuilder::new("Home").contents(|ui| {
+                ui.add_space(32.0);
 
-            ui.heading("My egui Application");
+                ui.heading("My egui Application");
 
-            ui.horizontal(|ui| {
-                let name_label = ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name)
-                    .labelled_by(name_label.id);
-            });
+                ui.horizontal(|ui| {
+                    let name_label = ui.label("Your name: ");
+                    ui.text_edit_singleline(&mut self.name)
+                        .labelled_by(name_label.id);
+                });
 
-            ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
+                ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
 
-            if ui.button("Increment").clicked() {
-                log::info!("incrementing age");
-                self.age += 1;
-            }
+                if ui.button("Increment").clicked() {
+                    log::info!("incrementing age");
+                    self.age += 1;
+                }
 
-            ui.hyperlink("https://www.google.com");
+                ui.hyperlink("https://www.google.com");
 
-            ui.label(format!("Hello '{}', age {}", self.name, self.age));
+                ui.label(format!("Hello '{}', age {}", self.name, self.age));
 
-            ui.label(format!("Last update timestamp: {}", time));
-            ui.label(format!("Focused: {:?}", ui.input(|i| i.viewport().focused)));
+                ui.label(format!("Last update timestamp: {}", time));
+                ui.label(format!("Focused: {:?}", ui.input(|i| i.viewport().focused)));
 
-            ui.heading("Viewport Support");
+                ui.heading("Viewport Support");
 
-            if ui.button("Quit").clicked() {
-                ctx.send_viewport_cmd(ViewportCommand::Close);
-            }
+                if ui.button("Quit").clicked() {
+                    ctx.send_viewport_cmd(ViewportCommand::Close);
+                }
 
-            if ui.button("Enter Fullscreen").clicked() {
-                ctx.send_viewport_cmd(ViewportCommand::Fullscreen(true));
-            }
+                if ui.button("Enter Fullscreen").clicked() {
+                    ctx.send_viewport_cmd(ViewportCommand::Fullscreen(true));
+                }
 
-            if ui.button("Exit Fullscreen").clicked() {
-                ctx.send_viewport_cmd(ViewportCommand::Fullscreen(false));
-            }
+                if ui.button("Exit Fullscreen").clicked() {
+                    ctx.send_viewport_cmd(ViewportCommand::Fullscreen(false));
+                }
+            }))
+            .tab(NavigationTabBuilder::new("Inspector").contents(|ui| {
+                ui.add_space(16.0);
 
-            ui.add_space(16.0);
-
-            ui.heading("Inspector");
-            ctx.inspection_ui(ui);
-        });
+                ui.heading("Inspector");
+                ctx.inspection_ui(ui);
+            }))
+            .show(ctx);
     }
 }
 

@@ -326,7 +326,16 @@ name = "egui-android-demo"
 version = "0.0.0"
 dependencies = [
  "egui-android",
+ "egui-mobile-patterns",
  "log",
+]
+
+[[package]]
+name = "egui-mobile-patterns"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "serde",
 ]
 
 [[package]]

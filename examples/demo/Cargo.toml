@@ -9,9 +9,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 log = "0.4"
-
-[dependencies.egui-android]
-path = "../../"
+egui-android.path = "../../"
+egui-mobile-patterns.path = "../../crates/egui-mobile-patterns"
 
 [package.metadata.android]
 package = "com.stephencoakley"

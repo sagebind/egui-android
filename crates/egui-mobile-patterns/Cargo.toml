@@ -1,0 +1,13 @@
+[package]
+name = "egui-mobile-patterns"
+version = "0.1.0"
+edition = "2021"
+authors = ["Stephen M. Coakley <me@stephencoakley.com>"]
+license = "MIT"
+
+[dependencies]
+egui = "0.31"
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
