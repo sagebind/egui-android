@@ -44,6 +44,14 @@ devenv tasks run demo:build
 
 This will automatically deploy the demo app APK to the emulated device, and open the app. The app's log output will be shown in the terminal while the task is running.
 
+## Project goals and future
+
+My goal for this project is to make it relatively easy to make mobile apps using egui and pure Rust code. For cross platform support, the idea is to make the majority of your app a shared crate that just uses egui without any platform-specific implementation. Then, for each target platform, you can make another crate that pulls in the bulk of the app as a dependency, and compiles the platform-specific details. This is that platform-specific crate for targeting Android.
+
+I already publish and maintain a pure-Rust app using egui to the Google Play Store, but it is using winit as the underlying layer which has caused me a couple problems. My plan is to make this crate good enough that I can replace the winit layer with this crate, without users noticing any regressions, and at the same time fixing a few reported bugs.
+
+Once this crate is working well enough to ship real apps with, I'd like to turn my focus to making a similar `egui-ios` crate for targeting iOS devices. I do not feel the need to do a similar binding for desktop operating systems -- winit already fits the desktop paradigm well, and you can simply use the official `eframe` crate as your platform-specific implementation for targeting desktop applications.
+
 ## License
 
 This project's source code and documentation is licensed under the MIT license. See the [LICENSE](LICENSE) file for details.
