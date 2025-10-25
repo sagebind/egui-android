@@ -1,4 +1,4 @@
-use crate::App;
+use crate::Activity;
 use egui::{Context, FullOutput, RawInput};
 use std::time::Instant;
 
@@ -13,7 +13,7 @@ pub(crate) struct AppState<T> {
     now: Instant,
 }
 
-impl<T: App> AppState<T> {
+impl<T: Activity> AppState<T> {
     /// Create a new `AppState` with the given `App`.
     pub(crate) fn new(app: T) -> Self {
         let now = Instant::now();

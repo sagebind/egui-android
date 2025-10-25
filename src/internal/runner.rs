@@ -1,14 +1,15 @@
-use crate::App;
 use super::{
     graphics::GraphicsContext, ime::show_hide_keyboard, input::InputHandler, state::AppState,
 };
+use crate::Activity;
 use android_activity::{
     input::{TextInputState, TextSpan},
     AndroidApp, MainEvent, PollEvent, WindowManagerFlags,
 };
 use egui::{
     output::OutputEvent, pos2, vec2, Event, FullOutput, Margin, OpenUrl, OutputCommand,
-    Pos2, RawInput, Rect, Theme, ViewportCommand, ViewportId, ViewportOutput, WidgetType,
+    PlatformOutput, Pos2, RawInput, Rect, Theme, ViewportCommand, ViewportId, ViewportOutput,
+    WidgetInfo, WidgetType,
 };
 use ndk::configuration::UiModeNight;
 use std::{
@@ -19,9 +20,9 @@ use std::{
 
 /// Actual base DPI in Android is 160, but we use a smaller value to get egui to
 /// scale a bit larger, for better legibility on mobile.
-const BASE_DPI: f32 = 120.0;
+const BASE_DPI: f32 = 160.0;
 
-pub(crate) struct Runner<T: App> {
+pub(crate) struct Runner<T: Activity> {
     app_state: AppState<T>,
     android_app: AndroidApp,
     graphics_context: GraphicsContext,
@@ -30,6 +31,7 @@ pub(crate) struct Runner<T: App> {
     repaint_info: Arc<Mutex<RepaintInfo>>,
     keyboard_visible: bool,
     close_requested: bool,
+    text_selection_widget: Option<WidgetInfo>,
 }
 
 struct RepaintInfo {
@@ -37,7 +39,7 @@ struct RepaintInfo {
     deadline: Instant,
 }
 
-impl<T: App> Runner<T> {
+impl<T: Activity> Runner<T> {
     pub fn new(android_app: AndroidApp) -> Self {
         let app_state = AppState::new(T::create());
 
@@ -61,6 +63,9 @@ impl<T: App> Runner<T> {
             }
         });
 
+        // Register all internal support plugins.
+        super::plugins::register_all_plugins(app_state.context());
+
         Self {
             app_state,
             android_app: android_app.clone(),
@@ -70,6 +75,7 @@ impl<T: App> Runner<T> {
             repaint_info,
             keyboard_visible: false,
             close_requested: false,
+            text_selection_widget: None,
         }
     }
 
@@ -241,10 +247,6 @@ impl<T: App> Runner<T> {
     fn repaint(&mut self) {
         let mut full_output = self.app_state.update(self.raw_input.take());
 
-        if let Some(viewport_output) = full_output.viewport_output.get(&ViewportId::ROOT) {
-            self.handle_viewport_output(viewport_output);
-        }
-
         if let Some(mut renderer) = self.graphics_context.renderer() {
             if full_output.platform_output.requested_discard() {
                 self.request_repaint();
@@ -257,18 +259,19 @@ impl<T: App> Runner<T> {
                 renderer.repaint(&mut full_output, &clipped_primitives);
             }
 
-            self.handle_output_events(full_output);
+            self.handle_platform_output(full_output.platform_output);
+        }
+
+        if let Some(viewport_output) = full_output.viewport_output.get(&ViewportId::ROOT) {
+            self.handle_viewport_output(viewport_output);
         }
     }
 
-    fn handle_output_events(&mut self, mut full_output: FullOutput) {
+    fn handle_platform_output(&mut self, platform_output: PlatformOutput) {
         // Check if egui wants to show or hide the keyboard, based on the
         // last UI update.
 
-        match (
-            full_output.platform_output.ime.is_some(),
-            self.keyboard_visible,
-        ) {
+        match (platform_output.ime.is_some(), self.keyboard_visible) {
             (true, false) => {
                 log::info!("show keyboard requested");
                 show_hide_keyboard(&self.android_app, true);
@@ -295,7 +298,7 @@ impl<T: App> Runner<T> {
         //     });
         // }
 
-        for event in full_output.platform_output.events {
+        for event in platform_output.events {
             log::info!("output event: {event:?}");
 
             match event {
@@ -315,7 +318,19 @@ impl<T: App> Runner<T> {
                     }
                 }
 
+                // TODO: We should open a custom context menu for copy and paste.
+                OutputEvent::DoubleClicked(info) => {
+                    if info.typ == WidgetType::TextEdit {
+                        if let Ok(text) = android_clipboard::get_text() {
+                            self.raw_input.events.push(Event::Paste(text));
+                            self.request_repaint();
+                        }
+                    }
+                }
+
                 OutputEvent::TextSelectionChanged(info) => {
+                    self.text_selection_widget = Some(info.clone());
+
                     self.android_app.set_text_input_state(TextInputState {
                         text: info.current_text_value.unwrap_or_default(),
                         selection: info
@@ -343,7 +358,7 @@ impl<T: App> Runner<T> {
             }
         }
 
-        for command in full_output.platform_output.commands {
+        for command in platform_output.commands {
             self.handle_output_command(command);
         }
     }
@@ -368,6 +383,7 @@ impl<T: App> Runner<T> {
 
     fn handle_viewport_output(&mut self, viewport_output: &ViewportOutput) {
         for command in &viewport_output.commands {
+            log::info!("viewport command: {command:?}");
             match command {
                 ViewportCommand::Close => {
                     self.close_requested = true;
@@ -405,12 +421,27 @@ impl<T: App> Runner<T> {
                     }
                 }
 
-                ViewportCommand::RequestPaste => {
-                    if let Ok(text) = android_clipboard::get_text() {
+                // All we have to do to implement copy and cut is to tell egui
+                // that we've accepted the request by sending a corresponding
+                // event back to egui to be processed next frame.
+                ViewportCommand::RequestCopy => {
+                    log::info!("copy requested");
+                    self.raw_input.events.push(Event::Copy);
+                    self.request_repaint();
+                }
+                ViewportCommand::RequestCut => {
+                    log::info!("cut requested");
+                    self.raw_input.events.push(Event::Cut);
+                    self.request_repaint();
+                }
+
+                ViewportCommand::RequestPaste => match android_clipboard::get_text() {
+                    Ok(text) => {
                         self.raw_input.events.push(Event::Paste(text));
                         self.request_repaint();
                     }
-                }
+                    Err(e) => log::error!("failed to get clipboard text: {e:?}"),
+                },
 
                 _ => log::warn!("unsupported viewport command: {command:?}"),
             }

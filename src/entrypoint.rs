@@ -5,13 +5,13 @@
 
 use crate::{
     internal::{bindings::application_info::ApplicationInfo, logging, runner::Runner},
-    App,
+    Activity,
 };
 
 pub use android_activity::AndroidApp;
 
 /// Our implementation of an Android main for `NativeActivity`.
-pub fn main<T: App>(android_app: AndroidApp) {
+pub fn main<T: Activity>(android_app: AndroidApp) {
     let app_info = ApplicationInfo::for_android_app(&android_app).unwrap();
 
     logging::init(app_info.package_name().unwrap());
@@ -23,10 +23,8 @@ pub fn main<T: App>(android_app: AndroidApp) {
 
 /// Define the entrypoint for an Android app.
 #[macro_export]
-macro_rules! entrypoint {
-    (
-        app = $app:ty
-    ) => {
+macro_rules! export {
+    ($app:ty) => {
         #[doc(hidden)]
         #[no_mangle]
         pub fn android_main(android_app: $crate::entrypoint::AndroidApp) {

@@ -11,4 +11,6 @@ mod graphics;
 mod ime;
 mod input;
 mod keycodes;
+mod plugins;
 mod state;
+mod widgets;

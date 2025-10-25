@@ -1,6 +1,6 @@
 use egui_android::{
     egui::{self, ViewportCommand},
-    App,
+    Activity,
 };
 use egui_mobile_patterns::layout::navigation::{NavigationTabBuilder, NavigationWrapper};
 
@@ -18,7 +18,7 @@ impl Default for MyApp {
     }
 }
 
-impl App for MyApp {
+impl Activity for MyApp {
     fn create() -> Self {
         Self::default()
     }
@@ -76,6 +76,4 @@ impl App for MyApp {
     }
 }
 
-egui_android::entrypoint! {
-    app = MyApp
-}
+egui_android::export!(MyApp);

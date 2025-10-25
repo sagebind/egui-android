@@ -5,8 +5,8 @@ use std::time::Duration;
 ///
 /// In the official egui ecosystem, this trait is equivalent to
 /// [`eframe::App`](https://docs.rs/eframe/latest/eframe/trait.App.html).
-pub trait App {
-    /// Called when a new activity instance for this app is opened.
+pub trait Activity {
+    /// Called when a new instance of this activity is opened.
     ///
     /// It is important to note that this method may be called multiple times
     /// during the lifetime of the current process as an application is opened

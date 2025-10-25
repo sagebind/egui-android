@@ -1,7 +1,7 @@
 use android_activity::{
     input::{
-        Axis, InputEvent, KeyAction, KeyEvent, KeyMapChar, Keycode, MetaState, MotionAction,
-        MotionEvent, Pointer, ToolType,
+        Axis, Button, InputEvent, KeyAction, KeyEvent, KeyMapChar, Keycode, MetaState,
+        MotionAction, MotionEvent, Pointer, ToolType,
     },
     AndroidApp, InputStatus,
 };
@@ -305,14 +305,17 @@ fn create_touch_event(
 }
 
 fn create_click_event(
-    _motion_event: &MotionEvent,
+    motion_event: &MotionEvent,
     pointer: &Pointer,
     pressed: bool,
     pixels_per_point: f32,
 ) -> Event {
     Event::PointerButton {
         pos: pointer_pos(pointer, pixels_per_point),
-        button: PointerButton::Primary,
+        button: match motion_event.action_button() {
+            Button::Secondary => PointerButton::Secondary,
+            _ => PointerButton::Primary,
+        },
         pressed,
         modifiers: Modifiers::NONE,
     }
